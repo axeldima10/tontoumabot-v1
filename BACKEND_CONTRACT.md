@@ -4,16 +4,20 @@ Ce document décrit ce que le front attend des backends Java et Python. Les deux
 canaux sont séparés car le texte et la voix n'ont pas le même protocole ni le
 même cycle de vie.
 
-## 1. Backend Java : session texte SSE
+## 1. Backend conversationnel : message texte
 
 ### Endpoint attendu
 
 ```http
-POST /api/chat/stream
-Accept: text/event-stream
+POST /api/v1/public/conversations/{conversationId}/messages
+Accept: application/json
 Content-Type: application/json
-Authorization: Bearer <jwt>
 ```
+
+`conversationId` est obligatoire dans l'URL. Le front génère un UUID pour une
+nouvelle conversation, ou utilise `VITE_CONVERSATION_ID` lorsqu'il est fourni.
+L'authentification est volontairement désactivée côté front pour cette première
+intégration.
 
 # Moi côté Front
 Le front utilise la variable `VITE_TEXT_SESSION_URL` pour remplacer cette URL.
@@ -22,9 +26,9 @@ Le front utilise la variable `VITE_TEXT_SESSION_URL` pour remplacer cette URL.
 
 ```json
 {
-  "question": "Je souhaite connaître les documents nécessaires",
-  "language": "fr",
-  "sessionId": "session-uuid-optionnel"
+  "content": "Je souhaite connaître les documents nécessaires",
+  "tts": true,
+  "language": "fr"
 }
 ```
 

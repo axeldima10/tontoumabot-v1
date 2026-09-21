@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { getAccessToken } from '../services/authService'
-import { streamTextSession } from '../services/chatService'
+import { createConversationId, sendChatMessage } from '../services/chatService'
 
 const languages = ['FR', 'WO', 'EN']
 const voiceLanguages = ['Français', 'Wolof', 'English']
@@ -8,6 +7,7 @@ const voiceLanguages = ['Français', 'Wolof', 'English']
 // Ce hook regroupe l'état métier du dashboard pour garder la page principalement déclarative.
 function useDashboard() {
   const [question, setQuestion] = useState('')
+  const [conversationId] = useState(() => import.meta.env.VITE_CONVERSATION_ID || createConversationId())
   const [sentQuestion, setSentQuestion] = useState('')
   const [language, setLanguage] = useState('FR')
   const [toolsOpen, setToolsOpen] = useState(false)
@@ -35,19 +35,21 @@ function useDashboard() {
     setNotice('Réponse en cours…')
     setQuestion('')
 
-    cancelTextSessionRef.current = streamTextSession(
-      cleanQuestion,
-      (chunk) => setAssistantResponse((current) => current + chunk),
-      (error) => {
+    cancelTextSessionRef.current = sendChatMessage({
+      conversationId,
+      content: cleanQuestion,
+      language: language.toLowerCase(),
+      tts: true,
+      onResponse: (answer) => setAssistantResponse(answer),
+      onError: (error) => {
         setIsStreaming(false)
         setNotice(error.message)
       },
-      getAccessToken(),
-      () => {
+      onComplete: () => {
         setIsStreaming(false)
         setNotice('Réponse terminée.')
       },
-    )
+    })
 
   }
 
