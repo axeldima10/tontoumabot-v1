@@ -7,7 +7,7 @@ function getMessagesUrl(conversationId) {
 }
 
 /** Sends one message to the backend conversation API. */
-export function sendChatMessage({ conversationId, content, language = 'fr', tts = true, onResponse, onError, onComplete }) {
+export function sendChatMessage({ conversationId, content, language = 'fr', tts = false, onResponse, onError, onComplete }) {
   const controller = new AbortController()
   let cancelled = false
 

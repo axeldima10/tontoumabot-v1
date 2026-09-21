@@ -43,7 +43,7 @@ function useDashboard() {
       conversationId,
       content: cleanQuestion,
       language: language.toLowerCase(),
-      tts: true,
+      tts: false,
       onResponse: (answer) => setAssistantResponse(answer),
       onError: (error) => {
         setIsStreaming(false)
