@@ -5,9 +5,13 @@ const languages = ['FR', 'WO', 'EN']
 const voiceLanguages = ['Français', 'Wolof', 'English']
 
 // Ce hook regroupe l'état métier du dashboard pour garder la page principalement déclarative.
+function getInitialConversationId() {
+  return import.meta.env.VITE_CONVERSATION_ID || createConversationId()
+}
+
 function useDashboard() {
   const [question, setQuestion] = useState('')
-  const [conversationId] = useState(() => import.meta.env.VITE_CONVERSATION_ID || createConversationId())
+  const [conversationId] = useState(getInitialConversationId)
   const [sentQuestion, setSentQuestion] = useState('')
   const [language, setLanguage] = useState('FR')
   const [toolsOpen, setToolsOpen] = useState(false)
