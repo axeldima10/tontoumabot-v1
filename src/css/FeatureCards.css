@@ -1,0 +1,59 @@
+/* Grille des raccourcis proposés à l'utilisateur. */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.feature-card {
+  position: relative;
+  min-height: 135px;
+  padding: 19px;
+  text-align: left;
+  overflow: hidden;
+  color: var(--text);
+  border-radius: 16px;
+}
+
+.feature-card > .feature-arrow {
+  position: absolute;
+  top: 20px;
+  right: 17px;
+  width: 13px;
+  color: #9aa69f;
+}
+
+.feature-card strong {
+  display: block;
+  font-size: 13px;
+}
+
+.feature-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  background: var(--soft-green);
+  color: var(--green);
+}
+
+.feature-icon svg {
+  width: 20px;
+}
+
+.feature-card p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+@media (max-width: 700px) {
+  .feature-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+}

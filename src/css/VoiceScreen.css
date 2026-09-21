@@ -1,0 +1,130 @@
+/* Panneau déplié lorsque l'utilisateur choisit la saisie vocale. */
+.voice-panel {
+  width: min(100%, 600px);
+  max-width: 600px;
+  margin: -17px auto 26px;
+  padding: 17px;
+  border-radius: 0 0 22px 22px;
+  animation: rise-in .28s ease both;
+}
+
+.voice-panel-head,
+.voice-panel-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.voice-panel-head h2 {
+  margin: 3px 0 0;
+  font-size: 15px;
+}
+
+.voice-close {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--muted);
+}
+
+.voice-close svg {
+  width: 15px;
+}
+
+.voice-live {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 72px;
+  margin: 16px 0 13px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  border-radius: 16px;
+  background: #ffffff12;
+  box-shadow: inset 0 1px #ffffff3d;
+}
+
+.voice-mic-button {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  padding: 0;
+  border: 1px solid #ffffff80;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--green) 78%, transparent);
+  color: white;
+  box-shadow: 0 7px 16px color-mix(in srgb, var(--green) 26%, transparent), inset 0 1px #ffffffb0;
+}
+
+.voice-mic-button svg {
+  width: 18px;
+}
+
+.voice-live.is-recording .voice-mic-button {
+  animation: mic-pulse 1.6s ease-in-out infinite;
+}
+
+.voice-transcript {
+  min-width: 0;
+  flex: 1;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.voice-bars {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 28px;
+}
+
+.voice-bars span {
+  width: 2px;
+  height: var(--bar-height);
+  border-radius: 3px;
+  background: var(--green);
+  animation: wave 1s ease-in-out infinite alternate;
+  animation-delay: var(--delay);
+}
+
+.voice-language,
+.voice-write {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 10px;
+}
+
+.voice-language svg,
+.voice-write svg {
+  width: 13px;
+}
+
+.voice-write {
+  color: var(--text);
+}
+
+@media (max-width: 700px) {
+  .voice-panel {
+    margin-top: -18px;
+    padding: 14px;
+  }
+
+  .voice-bars {
+    display: none;
+  }
+
+  .voice-transcript {
+    font-size: 11px;
+  }
+}

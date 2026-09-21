@@ -1,0 +1,22 @@
+/* Résultat affiché après l'envoi d'une demande. */
+.result-area {
+  max-width: 760px;
+  margin: 0 auto 30px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(260px, .8fr);
+  gap: 14px;
+}
+
+.memo-card,
+.orientation-card {
+  position: relative;
+  overflow: hidden;
+}
+
+@media (max-width: 700px) {
+  .result-area {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 26px;
+  }
+}

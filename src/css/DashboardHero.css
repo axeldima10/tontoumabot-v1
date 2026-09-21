@@ -1,0 +1,61 @@
+/* Présentation principale de la page d'accueil du dashboard. */
+.hero {
+  text-align: center;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: var(--green);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.hero-mark {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.2;
+}
+
+.sent-note,
+.notice {
+  animation: rise-in .35s ease both;
+}
+
+.sent-note {
+  margin: 10px 0 -5px;
+  color: var(--green);
+  font-size: 12px;
+}
+
+.notice {
+  margin: 8px 0 -5px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.assistant-response {
+  max-width: 680px;
+  margin: 18px auto 0;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.55;
+  animation: rise-in .35s ease both;
+}
+
+.response-cursor {
+  display: inline-block;
+  margin-left: 2px;
+  color: var(--green);
+  animation: cursor-blink .8s steps(2, start) infinite;
+}
+
+@keyframes cursor-blink {
+  50% { opacity: 0; }
+}

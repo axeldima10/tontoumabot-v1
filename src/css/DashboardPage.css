@@ -1,0 +1,17 @@
+/* Structure générale de la page : zone principale et largeur de lecture. */
+.main-panel {
+  width: 100%;
+  min-width: 0;
+}
+
+.content {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: clamp(74px, 10vh, 128px) 38px 120px;
+}
+
+@media (max-width: 700px) {
+  .content {
+    padding: 50px 18px 105px;
+  }
+}

@@ -1,0 +1,29 @@
+/* Logo réutilisable de TONTUMA-BOT. */
+.bot-mark {
+  width: 116px;
+  height: 110px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #d8ebe1;
+  box-shadow: 0 3px 7px #153c2820;
+}
+
+.bot-mark img {
+  width: 72%;
+  height: 72%;
+  object-fit: contain;
+  transition: transform .35s ease;
+}
+
+.bot-mark:hover img {
+  transform: translateY(-3px) rotate(-2deg);
+}
+
+@media (max-width: 700px) {
+  .bot-mark {
+    width: 52px;
+    height: 52px;
+  }
+}
