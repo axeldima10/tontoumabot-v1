@@ -1,17 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { createConversationId, sendChatMessage } from '../services/chatService'
+import { sendChatMessage } from '../services/chatService'
 
 const languages = ['FR', 'WO', 'EN']
 const voiceLanguages = ['Français', 'Wolof', 'English']
 
 // Ce hook regroupe l'état métier du dashboard pour garder la page principalement déclarative.
-function getInitialConversationId() {
-  return import.meta.env.VITE_CONVERSATION_ID || createConversationId()
-}
-
 function useDashboard() {
   const [question, setQuestion] = useState('')
-  const [conversationId] = useState(getInitialConversationId)
+  // Vide tant que le backend n'a pas créé la conversation : c'est lui qui génère l'identifiant.
+  const [conversationId, setConversationId] = useState('')
   const [sentQuestion, setSentQuestion] = useState('')
   const [language, setLanguage] = useState('FR')
   const [toolsOpen, setToolsOpen] = useState(false)
@@ -44,6 +41,7 @@ function useDashboard() {
       content: cleanQuestion,
       language: language.toLowerCase(),
       tts: false,
+      onConversationId: (id) => setConversationId(id),
       onResponse: (answer) => setAssistantResponse(answer),
       onError: (error) => {
         setIsStreaming(false)
@@ -75,6 +73,7 @@ function useDashboard() {
   function resetConversation() {
     setQuestion('')
     setSentQuestion('')
+    setConversationId('')
     setNotice('')
     setAssistantResponse('')
     setIsStreaming(false)
@@ -85,6 +84,7 @@ function useDashboard() {
   function endSession() {
     setQuestion('')
     setSentQuestion('')
+    setConversationId('')
     setToolsOpen(false)
     setVoiceOpen(false)
     setNotice('Session terminée. Vous pouvez commencer une nouvelle demande.')
