@@ -24,3 +24,20 @@ export function clearAccessToken() {
   sessionStorage.removeItem(ACCESS_TOKEN_KEY)
   localStorage.removeItem(ACCESS_TOKEN_KEY)
 }
+
+// Profil minimal ({ firstName, name, avatarUrl }) écrit par l'écran de connexion.
+const USER_KEY = 'tontuma_user'
+
+/**
+ * Retourne l'utilisateur connecté, ou null en mode invité.
+ * L'application reste entièrement utilisable sans connexion.
+ */
+export function getCurrentUser() {
+  try {
+    const raw = sessionStorage.getItem(USER_KEY) || localStorage.getItem(USER_KEY)
+    const user = raw ? JSON.parse(raw) : null
+    return user && (user.firstName || user.name) ? user : null
+  } catch {
+    return null
+  }
+}

@@ -1,63 +1,78 @@
 import { useEffect, useRef, useState } from 'react'
 import { sendChatMessage } from '../services/chatService'
 
-const languages = ['FR', 'WO', 'EN']
-const voiceLanguages = ['Français', 'Wolof', 'English']
+export const languages = ['FR', 'WO', 'EN']
+export const languageNames = { FR: 'Français', WO: 'Wolof', EN: 'English' }
 
-// Ce hook regroupe l'état métier du dashboard pour garder la page principalement déclarative.
+// Ce hook regroupe l'état de la conversation pour garder les vues principalement déclaratives.
 function useDashboard() {
-  const [question, setQuestion] = useState('')
-  // Vide tant que le backend n'a pas créé la conversation : c'est lui qui génère l'identifiant.
-  const [conversationId, setConversationId] = useState('')
-  const [sentQuestion, setSentQuestion] = useState('')
+  const [messages, setMessages] = useState([])
+  const [draft, setDraft] = useState('')
   const [language, setLanguage] = useState('FR')
-  const [toolsOpen, setToolsOpen] = useState(false)
-  const [notice, setNotice] = useState('')
-  const [assistantResponse, setAssistantResponse] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
-  const [voiceOpen, setVoiceOpen] = useState(false)
-  const [voiceLanguage, setVoiceLanguage] = useState('Wolof')
-  const cancelTextSessionRef = useRef(null)
+  // Vide tant que le backend n'a pas créé la conversation : c'est lui qui génère l'identifiant.
+  const conversationIdRef = useRef('')
+  const cancelRef = useRef(null)
+  const idRef = useRef(0)
 
   useEffect(() => () => {
     // Interrompt le flux si la page est démontée avant la fin de la réponse.
-    cancelTextSessionRef.current?.()
+    cancelRef.current?.()
   }, [])
 
-  function submitQuestion() {
-    const cleanQuestion = question.trim()
-    if (!cleanQuestion || isStreaming) return
+  function sendMessage(text = draft) {
+    const content = text.trim()
+    if (!content || isStreaming) return false
 
-    // Une nouvelle question annule la session précédente avant d'en créer une autre.
-    cancelTextSessionRef.current?.()
-    setSentQuestion(cleanQuestion)
-    setAssistantResponse('')
+    cancelRef.current?.()
+    const userId = `m${++idRef.current}`
+    const botId = `m${++idRef.current}`
+    const updateBot = (patch) => setMessages((current) => current.map((message) => (
+      message.id === botId ? { ...message, ...patch } : message
+    )))
+
+    setMessages((current) => [
+      ...current,
+      { id: userId, role: 'user', content },
+      { id: botId, role: 'assistant', content: '', status: 'pending', question: content, userId },
+    ])
+    setDraft('')
     setIsStreaming(true)
-    setNotice('Réponse en cours…')
-    setQuestion('')
 
-    cancelTextSessionRef.current = sendChatMessage({
-      conversationId,
-      content: cleanQuestion,
+    cancelRef.current = sendChatMessage({
+      conversationId: conversationIdRef.current,
+      content,
       language: language.toLowerCase(),
       tts: false,
-      onConversationId: (id) => setConversationId(id),
-      onResponse: (answer) => setAssistantResponse(answer),
+      onConversationId: (id) => { conversationIdRef.current = id },
+      onResponse: (answer) => updateBot({ content: answer, status: 'streaming' }),
       onError: (error) => {
         setIsStreaming(false)
-        setNotice(error.message)
+        updateBot({ status: 'error', error: error.message })
       },
       onComplete: () => {
         setIsStreaming(false)
-        setNotice('Réponse terminée.')
+        updateBot({ status: 'done' })
       },
     })
-
+    return true
   }
 
-  function selectFeature(title) {
-    setQuestion(title)
-    setNotice(`Suggestion ajoutée : ${title}`)
+  function stopStreaming() {
+    cancelRef.current?.()
+    cancelRef.current = null
+    setIsStreaming(false)
+    setMessages((current) => current.map((message) => (
+      message.status === 'pending' || message.status === 'streaming' ? { ...message, status: 'stopped' } : message
+    )))
+  }
+
+  function retry(messageId) {
+    const failed = messages.find((message) => message.id === messageId)
+    if (!failed || isStreaming) return
+    // On retire la question et la réponse en échec avant de renvoyer la même question.
+    setMessages((current) => current.filter((message) => message.id !== failed.id && message.id !== failed.userId))
+    sendMessage(failed.question)
   }
 
   function cycleLanguage() {
@@ -65,54 +80,26 @@ function useDashboard() {
     setLanguage((current) => languages[(languages.indexOf(current) + 1) % languages.length])
   }
 
-  function cycleVoiceLanguage(nextLanguage) {
-    // Le composant vocal peut fournir une langue précise ou demander la suivante.
-    setVoiceLanguage(nextLanguage || ((current) => voiceLanguages[(voiceLanguages.indexOf(current) + 1) % voiceLanguages.length]))
-  }
-
   function resetConversation() {
-    setQuestion('')
-    setSentQuestion('')
-    setConversationId('')
-    setNotice('')
-    setAssistantResponse('')
+    cancelRef.current?.()
+    cancelRef.current = null
+    conversationIdRef.current = ''
+    setMessages([])
+    setDraft('')
     setIsStreaming(false)
-    setToolsOpen(false)
-    setVoiceOpen(false)
-  }
-
-  function endSession() {
-    setQuestion('')
-    setSentQuestion('')
-    setConversationId('')
-    setToolsOpen(false)
-    setVoiceOpen(false)
-    setNotice('Session terminée. Vous pouvez commencer une nouvelle demande.')
-    setAssistantResponse('')
-    setIsStreaming(false)
-    cancelTextSessionRef.current?.()
   }
 
   return {
-    question,
-    setQuestion,
-    sentQuestion,
+    messages,
+    draft,
+    setDraft,
     language,
     cycleLanguage,
-    toolsOpen,
-    setToolsOpen,
-    notice,
-    assistantResponse,
     isStreaming,
-    submitQuestion,
-    selectFeature,
+    sendMessage,
+    stopStreaming,
+    retry,
     resetConversation,
-    endSession,
-    voiceOpen,
-    voiceLanguage,
-    openVoice: () => setVoiceOpen(true),
-    closeVoice: () => setVoiceOpen(false),
-    cycleVoiceLanguage,
   }
 }
 

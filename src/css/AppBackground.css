@@ -1,0 +1,49 @@
+/* Fond vivant : dégradés radiaux (pas de filter: blur, plus coûteux) animés par GSAP. */
+.app-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 70% at 50% -10%, var(--bg-deep), transparent 70%),
+    var(--bg);
+  transition: background-color 0.4s ease;
+}
+
+.bg-glow {
+  position: absolute;
+  width: 75vmax;
+  height: 75vmax;
+  border-radius: 50%;
+  will-change: transform;
+}
+
+.bg-glow-a {
+  top: -30vmax;
+  left: -25vmax;
+  background: radial-gradient(circle, var(--glow-a), transparent 62%);
+}
+
+.bg-glow-b {
+  top: 15%;
+  right: -35vmax;
+  background: radial-gradient(circle, var(--glow-b), transparent 60%);
+}
+
+.bg-glow-c {
+  bottom: -40vmax;
+  left: 10%;
+  background: radial-gradient(circle, var(--glow-c), transparent 62%);
+}
+
+.bg-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(140% 100% at 50% 40%, transparent 55%, rgb(0 0 0 / 0.35));
+  opacity: 0;
+}
+
+.dark .bg-vignette {
+  opacity: 1;
+}

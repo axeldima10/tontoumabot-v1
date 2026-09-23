@@ -1,48 +1,87 @@
-import DashboardHero from '../components/dashboard/DashboardHero'
-import FeatureCards from '../components/dashboard/FeatureCards'
-import QuestionComposer from '../components/dashboard/QuestionComposer'
-import SessionControls from '../components/dashboard/SessionControls'
-import Topbar from '../components/dashboard/Topbar'
-import VoiceScreen from '../components/dashboard/VoiceScreen'
+import { useCallback, useRef, useState } from 'react'
+import ChatView from '../components/chat/ChatView'
+import HomeView from '../components/home/HomeView'
+import AppBackground from '../components/layout/AppBackground'
+import Sidebar from '../components/layout/Sidebar'
+import VoiceView from '../components/voice/VoiceView'
 import { useTheme } from '../context/ThemeContext'
 import useDashboard from '../hooks/useDashboard'
+import useHashView from '../hooks/useHashView'
+import useMediaQuery from '../hooks/useMediaQuery'
+import { cn } from '../lib/cn'
+import { getCurrentUser } from '../services/authService'
 import '../css/DashboardPage.css'
 
-// Page-orchestratrice : elle assemble les composants et relie leurs événements au hook métier.
+// Page-orchestratrice : elle assemble les vues et relie leurs événements au hook de conversation.
 function DashboardPage() {
   const { dark } = useTheme()
-  const dashboard = useDashboard()
+  const chat = useDashboard()
+  const [view, navigate] = useHashView()
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
+  const [menuOpen, setMenuOpen] = useState(false)
+  // L'utilisateur est lu une fois : l'application fonctionne aussi en mode invité (null).
+  const [user] = useState(getCurrentUser)
+  const mainRef = useRef(null)
 
-  // La classe dark est portée par la racine visuelle afin que les variables CSS se propagent partout.
+  const firstName = user?.firstName || user?.name?.split(' ')[0] || ''
+  const recents = chat.messages.filter((message) => message.role === 'user').reverse().slice(0, 6)
+
+  const openMenu = useCallback(() => setMenuOpen(true), [])
+  const closeMenu = useCallback(() => setMenuOpen(false), [])
+
+  function startWith(text) {
+    // Si une réponse est encore en cours, la suggestion attend dans le champ de saisie.
+    if (!chat.sendMessage(text)) chat.setDraft(text)
+    navigate('chat')
+  }
+
+  function newChat() {
+    chat.resetConversation()
+    closeMenu()
+    navigate('chat')
+  }
+
+  function endSession() {
+    chat.resetConversation()
+    closeMenu()
+    navigate('home')
+  }
+
+  function openRecent(messageId) {
+    closeMenu()
+    navigate('chat')
+    // Deux frames : la vue discussion doit être montée avant de faire défiler jusqu'au message.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      document.getElementById(`msg-${messageId}`)?.scrollIntoView({ block: 'center' })
+    }))
+  }
+
   return (
-    <main className={`app-shell ${dark ? 'dark' : ''}`}>
-      <section className="main-panel">
-        <Topbar />
-        <div className="content">
-          <DashboardHero
-            sentQuestion={dashboard.sentQuestion}
-            notice={dashboard.notice}
-            assistantResponse={dashboard.assistantResponse}
-            isStreaming={dashboard.isStreaming}
-          />
-          <QuestionComposer
-            {...dashboard}
-            onChange={dashboard.setQuestion}
-            onSubmit={dashboard.submitQuestion}
-            onVoiceOpen={dashboard.openVoice}
-          />
-          {dashboard.voiceOpen && (
-            <VoiceScreen
-              language={dashboard.voiceLanguage}
-              onLanguageChange={dashboard.cycleVoiceLanguage}
-              onClose={dashboard.closeVoice}
-            />
-          )}
-          <FeatureCards onSelect={dashboard.selectFeature} />
-        </div>
-      </section>
-      <SessionControls onEndSession={dashboard.endSession} />
-    </main>
+    <div className={cn('app-shell', dark && 'dark', `view-${view}`)}>
+      <button type="button" className="skip-link" onClick={() => mainRef.current?.focus()}>
+        Aller au contenu
+      </button>
+      <AppBackground />
+      <Sidebar
+        view={view}
+        open={menuOpen}
+        isDesktop={isDesktop}
+        recents={recents}
+        onClose={closeMenu}
+        onNewChat={newChat}
+        onOpenRecent={openRecent}
+        onEndSession={endSession}
+      />
+      <main className="app-main" ref={mainRef} tabIndex={-1} inert={!isDesktop && menuOpen}>
+        {view === 'chat' ? (
+          <ChatView chat={chat} firstName={firstName} onMenu={openMenu} onNewChat={newChat} />
+        ) : view === 'voice' ? (
+          <VoiceView language={chat.language} onCycleLanguage={chat.cycleLanguage} onMenu={openMenu} onClose={() => navigate('home')} />
+        ) : (
+          <HomeView user={user} recents={recents} onMenu={openMenu} onSuggestion={startWith} onOpenRecent={openRecent} />
+        )}
+      </main>
+    </div>
   )
 }
 

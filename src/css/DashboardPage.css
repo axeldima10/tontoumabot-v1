@@ -1,17 +1,18 @@
-/* Structure générale de la page : zone principale et largeur de lecture. */
-.main-panel {
-  width: 100%;
+/* Structure générale : menu latéral fixe sur ordinateur, tiroir sur mobile. */
+.app-main {
+  position: relative;
+  z-index: 1;
   min-width: 0;
+  min-height: 100dvh;
 }
 
-.content {
-  max-width: 1040px;
-  margin: 0 auto;
-  padding: clamp(74px, 10vh, 128px) 38px 120px;
+.app-main:focus {
+  outline: none;
 }
 
-@media (max-width: 700px) {
-  .content {
-    padding: 50px 18px 105px;
+@media (min-width: 1024px) {
+  .app-shell {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
   }
 }
