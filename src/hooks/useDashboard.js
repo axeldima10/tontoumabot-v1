@@ -10,6 +10,7 @@ function useDashboard() {
   const [draft, setDraft] = useState('')
   const [language, setLanguage] = useState('FR')
   const [isStreaming, setIsStreaming] = useState(false)
+  const [voiceLang, setVoiceLang] = useState(null)
   // Vide tant que le backend n'a pas créé la conversation : c'est lui qui génère l'identifiant.
   const conversationIdRef = useRef('')
   const cancelRef = useRef(null)
@@ -75,6 +76,25 @@ function useDashboard() {
     sendMessage(failed.question)
   }
 
+  function updateMessage(id, patch) {
+    setMessages((current) => current.map((message) => (message.id === id ? { ...message, ...patch } : message)))
+  }
+
+  /**
+   * Ajoute un tour vocal au fil de discussion : la transcription arrive après coup
+   * (GET /messages), la réponse est remplie au fil du flux SSE.
+   */
+  function beginVoiceTurn() {
+    const userId = `m${++idRef.current}`
+    const botId = `m${++idRef.current}`
+    setMessages((current) => [
+      ...current,
+      { id: userId, role: 'user', content: 'Question vocale', via: 'voice' },
+      { id: botId, role: 'assistant', content: '', status: 'pending', via: 'voice' },
+    ])
+    return { userId, botId }
+  }
+
   function cycleLanguage() {
     // Le modulo permet de revenir à la première langue après la dernière.
     setLanguage((current) => languages[(languages.indexOf(current) + 1) % languages.length])
@@ -100,6 +120,12 @@ function useDashboard() {
     stopStreaming,
     retry,
     resetConversation,
+    // Mode vocal : langue de transcription (null = pas encore choisie) et conversation partagée.
+    voiceLang,
+    setVoiceLang,
+    conversationIdRef,
+    beginVoiceTurn,
+    updateMessage,
   }
 }
 

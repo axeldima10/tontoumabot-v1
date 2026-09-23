@@ -76,7 +76,7 @@ function DashboardPage() {
         {view === 'chat' ? (
           <ChatView chat={chat} firstName={firstName} onMenu={openMenu} onNewChat={newChat} />
         ) : view === 'voice' ? (
-          <VoiceView language={chat.language} onCycleLanguage={chat.cycleLanguage} onMenu={openMenu} onClose={() => navigate('home')} />
+          <VoiceView chat={chat} onMenu={openMenu} onClose={() => navigate('home')} />
         ) : (
           <HomeView user={user} recents={recents} onMenu={openMenu} onSuggestion={startWith} onOpenRecent={openRecent} />
         )}

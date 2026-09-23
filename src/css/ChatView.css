@@ -225,6 +225,15 @@
   backdrop-filter: blur(18px);
 }
 
+.msg-voice-icon {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  margin-right: 6px;
+  vertical-align: -2px;
+  color: var(--green-light);
+}
+
 .app-shell:not(.dark) .msg-bubble {
   background: linear-gradient(150deg, rgb(0 155 73 / 0.16), rgb(61 220 132 / 0.1));
 }

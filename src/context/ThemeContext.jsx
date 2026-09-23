@@ -15,27 +15,23 @@ function readPrefs() {
 // Le contexte rend l'état du thème disponible à tous les composants sans prop drilling.
 export function ThemeProvider({ children }) {
   const [dark, setDark] = useState(() => readPrefs().dark ?? true)
-  const [largeText, setLargeText] = useState(() => readPrefs().largeText ?? false)
 
   useEffect(() => {
     // Le document entier suit le thème : barres de défilement, fond de rebond et barre du navigateur.
     const root = document.documentElement
     root.dataset.theme = dark ? 'dark' : 'light'
-    root.classList.toggle('text-large', largeText)
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#050d09' : '#eef5f1')
     try {
-      localStorage.setItem(PREFS_KEY, JSON.stringify({ dark, largeText }))
+      localStorage.setItem(PREFS_KEY, JSON.stringify({ dark }))
     } catch {
       // Stockage indisponible (navigation privée) : les préférences restent en mémoire.
     }
-  }, [dark, largeText])
+  }, [dark])
 
   const value = useMemo(() => ({
     dark,
-    largeText,
     toggleTheme: () => setDark((current) => !current),
-    toggleLargeText: () => setLargeText((current) => !current),
-  }), [dark, largeText])
+  }), [dark])
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
 }

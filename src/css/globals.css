@@ -17,11 +17,6 @@
 	background: #eef5f1;
 }
 
-/* « Texte agrandi » : toute la typographie est en rem et suit cette taille racine. */
-:root.text-large {
-	font-size: 112.5%;
-}
-
 * {
 	box-sizing: border-box;
 }

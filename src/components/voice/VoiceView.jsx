@@ -1,189 +1,131 @@
-import { useEffect, useRef, useState } from 'react'
-import { Globe2, MessageSquareText, Mic, MicOff, X } from 'lucide-react'
-import { languageNames } from '../../hooks/useDashboard'
+import { useRef } from 'react'
+import { Loader2, MessageSquareText, Mic, MicOff, Square, X } from 'lucide-react'
+import { voiceLanguageByCode } from '../../data/voiceLanguages'
 import { viewHref } from '../../hooks/useHashView'
+import useVoiceAssistant from '../../hooks/useVoiceAssistant'
 import { cn } from '../../lib/cn'
 import { gsap, MOTION_OK, useGSAP } from '../../lib/gsap'
-import { getAccessToken } from '../../services/authService'
-import { voiceSocketService } from '../../services/voiceService'
 import AppHeader from '../layout/AppHeader'
+import Flag from './Flag'
+import VoiceLanguagePicker from './VoiceLanguagePicker'
 import VoiceOrb from './VoiceOrb'
 import '../../css/VoiceView.css'
 
 const titles = {
-  connecting: 'Connexion…',
-  ready: 'Je suis prêt',
+  starting: 'Un instant…',
+  idle: 'Touchez pour parler',
   listening: 'Je vous écoute…',
-  speaking: 'Tontouma répond…',
+  thinking: 'Je réfléchis…',
+  speaking: 'Je vous réponds',
   unavailable: 'Mode vocal indisponible',
 }
 
-const defaultHint = 'Parlez naturellement, en français, en wolof ou en anglais : je vous oriente et vous accompagne dans vos démarches.'
+// Sous-titres : la réponse est affichée sans les marques de mise en forme (**gras**, listes, titres…).
+const MARKDOWN_MARKS = /(\*\*|`+|^#{1,4}\s+|^\s*[-*•]\s+)/gm
+const plainText = (text) => text.replace(MARKDOWN_MARKS, '')
 
-// Encapsule le microphone, le WebSocket audio et la lecture des réponses vocales.
-function VoiceView({ language, onCycleLanguage, onMenu, onClose }) {
+const micLabels = {
+  idle: 'Commencer à parler',
+  listening: 'J’ai fini de parler',
+  thinking: 'Annuler la demande',
+  speaking: 'Interrompre et reparler',
+}
+
+// Session vocale « mains libres » : une langue = une session (la clé du composant la réinitialise).
+function VoiceSession({ lang, chat, onChangeLanguage, onClose }) {
   const rootRef = useRef(null)
-  const recorderRef = useRef(null)
-  const mediaStreamRef = useRef(null)
-  const analyserRef = useRef(null)
-  const [phase, setPhase] = useState('connecting')
-  const [hint, setHint] = useState(defaultHint)
-  const [speaking, setSpeaking] = useState(false)
+  const { phase, heard, answer, notice, languageAlert, analyserRef, toggle } = useVoiceAssistant({ lang, chat })
+  const language = voiceLanguageByCode[lang]
+  const suggested = languageAlert && voiceLanguageByCode[String(languageAlert.detectedLanguage).slice(0, 2).toLowerCase()]
 
   useGSAP(() => {
     const mm = gsap.matchMedia()
     mm.add(MOTION_OK, () => {
-      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
-      tl.from('[data-anim="header"]', { y: -14, autoAlpha: 0, duration: 0.5 })
-        .from('.voice-title', { y: 20, autoAlpha: 0, duration: 0.7 }, '-=0.2')
-        .from('.voice-hint', { y: 16, autoAlpha: 0, duration: 0.7 }, '+=0.3')
+      gsap.timeline({ defaults: { ease: 'power3.out' } })
+        .from('.voice-title', { y: 20, autoAlpha: 0, duration: 0.7 })
+        .from('.voice-caption', { y: 16, autoAlpha: 0, duration: 0.7 }, '+=0.3')
         .from('.voice-control', { y: 30, autoAlpha: 0, scale: 0.8, stagger: 0.08, duration: 0.6, ease: 'back.out(1.8)' }, '-=0.5')
     })
     return () => mm.revert()
   }, { scope: rootRef })
 
-  useEffect(() => {
-    let disposed = false
-    let audioContext = null
-
-    async function startVoiceSession() {
-      // Le navigateur doit fournir MediaRecorder et l'accès au microphone.
-      if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
-        setPhase('unavailable')
-        setHint('La capture audio n’est pas disponible dans ce navigateur. Vous pouvez poursuivre par écrit.')
-        return
-      }
-
-      const socket = voiceSocketService.connect(
-        getAccessToken(),
-        (audioBlob) => {
-          // Chaque réponse audio est jouée dès sa réception. L'URL temporaire
-          // est révoquée après lecture afin d'éviter une fuite mémoire.
-          const audioUrl = URL.createObjectURL(audioBlob)
-          const audio = new Audio(audioUrl)
-          audio.onplay = () => setSpeaking(true)
-          audio.onended = () => {
-            setSpeaking(false)
-            URL.revokeObjectURL(audioUrl)
-          }
-          audio.play().catch(() => setHint('La lecture audio nécessite une interaction avec la page. Touchez l’écran puis réessayez.'))
-        },
-        (error) => setHint(`${error.message} Vérifiez votre connexion puis réessayez.`),
-      )
-
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-        if (disposed) {
-          stream.getTracks().forEach((track) => track.stop())
-          return
-        }
-
-        mediaStreamRef.current = stream
-
-        // L'analyseur ne sert qu'à l'animation de la sphère : son absence n'empêche pas l'enregistrement.
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext
-        if (AudioContextClass) {
-          audioContext = new AudioContextClass()
-          const analyser = audioContext.createAnalyser()
-          analyser.fftSize = 512
-          audioContext.createMediaStreamSource(stream).connect(analyser)
-          analyserRef.current = analyser
-        }
-
-        const recorder = new MediaRecorder(stream)
-        recorderRef.current = recorder
-        recorder.ondataavailable = (event) => {
-          if (event.data.size > 0 && socket.readyState === WebSocket.OPEN) {
-            voiceSocketService.sendAudioChunk(event.data)
-          }
-        }
-        recorder.onstart = () => {
-          audioContext?.resume()
-          setPhase('listening')
-        }
-        recorder.onstop = () => setPhase('ready')
-
-        // Le bouton démarrera effectivement l'enregistrement après connexion.
-        setPhase('ready')
-      } catch (error) {
-        voiceSocketService.disconnect()
-        setPhase('unavailable')
-        setHint(error.name === 'NotAllowedError'
-          ? 'L’accès au microphone a été refusé. Autorisez-le dans les réglages du navigateur, ou poursuivez par écrit.'
-          : 'Impossible d’ouvrir le microphone. Vérifiez qu’il est branché, ou poursuivez par écrit.')
-      }
-    }
-
-    startVoiceSession()
-
-    return () => {
-      disposed = true
-      if (recorderRef.current?.state === 'recording') recorderRef.current.stop()
-      mediaStreamRef.current?.getTracks().forEach((track) => track.stop())
-      analyserRef.current = null
-      audioContext?.close()
-      voiceSocketService.disconnect()
-    }
-  }, [])
-
-  function toggleRecording() {
-    const recorder = recorderRef.current
-    if (!recorder) return
-
-    if (recorder.state === 'recording') {
-      recorder.stop()
-    } else if (recorder.state === 'inactive') {
-      recorder.start(250)
-    }
-  }
-
-  /*
-   * L'ancienne version utilisait SpeechRecognition, qui transcrivait localement
-   * la voix. Le contrat demandé utilise maintenant MediaRecorder : le navigateur
-   * envoie les paquets audio au backend Python, qui renvoie des blobs à lire.
-   */
-  const listening = phase === 'listening'
-  const title = speaking ? titles.speaking : titles[phase]
-  const micDisabled = phase === 'connecting' || phase === 'unavailable'
+  // Le titre suit la phase ; en écoute, il confirme que la voix a bien été détectée.
+  const title = phase === 'listening' && heard ? 'Je vous entends…' : titles[phase]
+  const showAnswer = Boolean(answer) && phase !== 'listening'
+  const caption = notice || (phase === 'listening'
+    ? `Parlez naturellement en ${language.name.toLowerCase()}. Je m’arrête d’écouter dès que vous marquez une pause.`
+    : phase === 'thinking' ? 'Je prépare ma réponse…' : '')
+  const micDisabled = phase === 'starting' || phase === 'unavailable'
 
   return (
-    <div className="voice-view" ref={rootRef}>
-      <AppHeader
-        title={<>Parler avec <span translate="no">Tontouma</span></>}
-        onMenu={onMenu}
-        right={(
-          <button type="button" className="glass-pill voice-lang" onClick={onCycleLanguage} aria-label={`Langue : ${languageNames[language]}. Changer de langue`}>
-            <Globe2 aria-hidden="true" />
-            <span className="only-desktop">{languageNames[language]}</span>
-            <span className="only-mobile">{language}</span>
-          </button>
-        )}
-      />
-
+    <div className="voice-session" ref={rootRef}>
       <section className="voice-stage" aria-labelledby="voice-title">
         <h1 id="voice-title" className="voice-title" aria-live="polite">{title}</h1>
-        <VoiceOrb analyserRef={analyserRef} listening={listening} speaking={speaking} />
-        <p className="voice-hint" aria-live="polite">{hint}</p>
+        <VoiceOrb analyserRef={analyserRef} mode={phase === 'unavailable' || phase === 'starting' ? 'idle' : phase} />
+        <div className="voice-caption">
+          {showAnswer ? (
+            <p className="voice-answer" aria-live="polite" lang={lang}>{plainText(answer)}</p>
+          ) : (
+            <p className={cn('voice-hint', notice && 'is-notice')} aria-live="polite">{caption || ' '}</p>
+          )}
+          {suggested && suggested.code !== lang && (
+            <div className="voice-alert glass" role="status">
+              <Flag code={suggested.flag} />
+              <span>Il semble que vous parliez {suggested.name.toLowerCase()}.</span>
+              <button type="button" className="glass-pill" onClick={() => onChangeLanguage(suggested.code)}>
+                Passer en {suggested.name}
+              </button>
+            </div>
+          )}
+        </div>
       </section>
 
       <div className="voice-controls" role="group" aria-label="Commandes vocales">
-        <a className="voice-control glass-btn is-large" href={viewHref.chat} aria-label="Poursuivre par écrit" title="Poursuivre par écrit">
+        <a className="voice-control glass-btn is-large" href={viewHref.chat} aria-label="Voir la conversation écrite" title="Voir la conversation écrite">
           <MessageSquareText aria-hidden="true" />
         </a>
         <button
           type="button"
-          className={cn('voice-control voice-mic', listening && 'is-listening')}
-          onClick={toggleRecording}
+          className={cn('voice-control voice-mic', `is-${phase}`)}
+          onClick={toggle}
           disabled={micDisabled}
-          aria-pressed={listening}
-          aria-label={listening ? 'Arrêter l’écoute' : 'Commencer à parler'}
+          aria-label={micLabels[phase] ?? 'Micro indisponible'}
+          title={micLabels[phase]}
         >
-          {micDisabled && phase === 'unavailable' ? <MicOff aria-hidden="true" /> : <Mic aria-hidden="true" />}
+          {phase === 'unavailable' ? <MicOff aria-hidden="true" />
+            : phase === 'thinking' ? <Loader2 className="spin" aria-hidden="true" />
+              : phase === 'speaking' || phase === 'listening' ? <Square className="icon-fill" aria-hidden="true" />
+                : <Mic aria-hidden="true" />}
         </button>
         <button type="button" className="voice-control glass-btn is-large" onClick={onClose} aria-label="Quitter le mode vocal" title="Quitter">
           <X aria-hidden="true" />
         </button>
       </div>
+    </div>
+  )
+}
+
+// Mode vocal : choix de la langue, puis conversation vocale continue.
+function VoiceView({ chat, onMenu, onClose }) {
+  const { voiceLang, setVoiceLang } = chat
+  const language = voiceLang ? voiceLanguageByCode[voiceLang] : null
+
+  return (
+    <div className="voice-view">
+      <AppHeader
+        title={<>Parler avec <span translate="no">Tontouma</span></>}
+        onMenu={onMenu}
+        right={language ? (
+          <button type="button" className="glass-pill voice-lang" onClick={() => setVoiceLang(null)} aria-label={`Langue : ${language.name}. Changer de langue`}>
+            <Flag code={language.flag} />
+            <span className="only-desktop">{language.name}</span>
+            <span className="only-mobile">{language.code.toUpperCase()}</span>
+          </button>
+        ) : null}
+      />
+      {language
+        ? <VoiceSession key={voiceLang} lang={voiceLang} chat={chat} onChangeLanguage={setVoiceLang} onClose={onClose} />
+        : <VoiceLanguagePicker onSelect={setVoiceLang} />}
     </div>
   )
 }

@@ -3,6 +3,10 @@ const CONVERSATIONS_PATH = '/api/v1/public/conversations'
 const ORGANISATION_ID = import.meta.env.VITE_ORGANISATION_ID || ''
 const BORNE_ID = import.meta.env.VITE_BORNE_ID || ''
 
+// Première phrase envoyée quand une conversation démarre à l'oral sans organisation configurée :
+// l'API exige soit `organizationId`, soit une `question` pour router vers la bonne structure.
+const VOICE_OPENERS = { fr: 'Bonjour', wo: 'Salaamaalekum' }
+
 function buildUrl(path) {
   // trim() protège contre une espace accidentelle dans le .env.
   const baseUrl = BACKEND_URL.trim().replace(/\/$/, '')
@@ -24,7 +28,7 @@ async function readBody(response) {
 function assertOk(response, body) {
   if (response.ok) return
   const message = typeof body === 'object' && body?.message
-    ? body.message 
+    ? body.message
     : `Le serveur conversationnel a répondu avec le statut ${response.status}.`
   throw new Error(message)
 }
@@ -35,6 +39,8 @@ function extractConversationId(payload) {
   return payload.conversationId ?? payload.id ?? ''
 }
 
+const isUserRole = (role) => String(role).toLowerCase() === 'user'
+
 /** Extrait le texte à afficher, que le backend renvoie un message ou une liste. */
 function extractAnswer(payload) {
   if (!payload) return ''
@@ -43,14 +49,15 @@ function extractAnswer(payload) {
   const messages = Array.isArray(payload) ? payload : payload.messages
   if (Array.isArray(messages)) {
     // Le dernier message qui n'est pas celui de l'utilisateur est la réponse du bot.
-    const answer = [...messages].reverse().find((message) => message?.content && message?.role !== 'user')
+    const answer = [...messages].reverse().find((message) => message?.content && !isUserRole(message?.role))
     return answer?.content ?? ''
   }
 
   return payload.content ?? payload.answer ?? payload.response ?? payload.message ?? ''
 }
 
-async function fetchLastMessage(conversationId, signal) {
+/** Historique complet d'une conversation (ordre chronologique). */
+export async function fetchMessages(conversationId, signal) {
   const response = await fetch(buildUrl(`${CONVERSATIONS_PATH}/${encodeURIComponent(conversationId)}/messages`), {
     method: 'GET',
     headers: { Accept: 'application/json' },
@@ -58,26 +65,40 @@ async function fetchLastMessage(conversationId, signal) {
   })
   const body = await readBody(response)
   assertOk(response, body)
-  return extractAnswer(body)
+  return Array.isArray(body) ? body : body?.messages ?? []
 }
 
-/** Crée une conversation côté backend : c'est lui qui génère l'identifiant. */
-async function createConversation({ content, language, signal }) {
+/** Dernière question de l'usager : c'est ainsi qu'on récupère la transcription d'une question vocale. */
+export function lastUserContent(messages) {
+  return [...messages].reverse().find((message) => isUserRole(message?.role))?.content ?? ''
+}
+
+/**
+ * Crée une conversation côté backend : c'est lui qui génère l'identifiant.
+ * L'API attend exactement l'un des deux : `organizationId` (borne configurée) ou `question`.
+ */
+async function createConversation({ question, language, signal }) {
+  const target = ORGANISATION_ID
+    ? { organizationId: ORGANISATION_ID, ...(BORNE_ID ? { borneId: BORNE_ID } : {}) }
+    : { question }
+
   const response = await fetch(buildUrl(CONVERSATIONS_PATH), {
     method: 'POST',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      question: content,
-      language,
-      // Champs optionnels : envoyés seulement s'ils sont configurés.
-      ...(ORGANISATION_ID ? { organisationId: ORGANISATION_ID } : {}),
-      ...(BORNE_ID ? { borneId: BORNE_ID } : {}),
-    }),
+    body: JSON.stringify({ ...target, language }),
     signal,
   })
   const body = await readBody(response)
   assertOk(response, body)
-  return body
+
+  const id = extractConversationId(body)
+  if (id) return id
+  // Plusieurs structures possibles : le backend demande à l'usager de préciser sa demande.
+  if (Array.isArray(body?.candidates) && body.candidates.length) {
+    const names = body.candidates.slice(0, 3).map((candidate) => candidate.name).filter(Boolean).join(', ')
+    throw new Error(`Plusieurs structures peuvent vous répondre${names ? ` (${names})` : ''}. Précisez le service ou la structure concernée dans votre question.`)
+  }
+  throw new Error("Le backend n'a pas renvoyé d'identifiant de conversation.")
 }
 
 /** Découpe un bloc SSE (`event:` / `data:`) en objet exploitable. */
@@ -113,10 +134,11 @@ function extractDelta(data) {
 }
 
 /**
- * Lit le flux SSE et remonte la réponse au fur et à mesure.
+ * Lit le flux SSE de réponse. Événements documentés : `message` ({delta}),
+ * `audio-chunk` ({audioUrl, index, total}), `language-alert`, `error` et `done` (dernier).
  * Retourne le texte complet et les métadonnées de l'événement `done`.
  */
-async function readSseStream(response, { onChunk, isCancelled }) {
+async function readSseStream(response, { onChunk, onAudioChunk, onLanguageAlert, isCancelled }) {
   const reader = response.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
@@ -135,17 +157,25 @@ async function readSseStream(response, { onChunk, isCancelled }) {
     for (const block of blocks) {
       const parsed = parseSseBlock(block)
       if (!parsed) continue
-      if (parsed.event === 'done') {
-        meta = parsed.data
-        continue
-      }
-      if (parsed.event === 'error') {
-        throw new Error(parsed.data?.message || 'Le moteur conversationnel a renvoyé une erreur.')
-      }
-      const delta = extractDelta(parsed.data)
-      if (delta) {
-        answer += delta
-        onChunk?.(answer)
+      switch (parsed.event) {
+        case 'done':
+          meta = parsed.data
+          break
+        case 'error':
+          throw new Error(parsed.data?.message || 'Le moteur conversationnel a renvoyé une erreur.')
+        case 'audio-chunk':
+          onAudioChunk?.(parsed.data)
+          break
+        case 'language-alert':
+          onLanguageAlert?.(parsed.data)
+          break
+        default: {
+          const delta = extractDelta(parsed.data)
+          if (delta) {
+            answer += delta
+            onChunk?.(answer)
+          }
+        }
       }
     }
   }
@@ -153,23 +183,53 @@ async function readSseStream(response, { onChunk, isCancelled }) {
   return { answer, meta }
 }
 
-/** Envoie le message et lit la réponse, en flux SSE ou en JSON selon le backend. */
-async function postMessage({ conversationId, content, language, tts, signal, onChunk, isCancelled }) {
-  const response = await fetch(buildUrl(`${CONVERSATIONS_PATH}/${encodeURIComponent(conversationId)}/messages`), {
-    method: 'POST',
-    headers: { Accept: 'text/event-stream, application/json', 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content, tts, language }),
-    signal,
-  })
-
+/** Lit la réponse d'un POST de message : flux SSE, ou JSON si le backend ne streame pas. */
+async function readMessageResponse(response, handlers) {
   const contentType = response.headers.get('Content-Type') || ''
   if (!response.ok || !contentType.includes('text/event-stream') || !response.body) {
     const body = await readBody(response)
     assertOk(response, body)
     return { answer: extractAnswer(body), meta: null }
   }
+  return readSseStream(response, handlers)
+}
 
-  return readSseStream(response, { onChunk, isCancelled })
+/** Envoie le message et lit la réponse, en flux SSE ou en JSON selon le backend. */
+async function postMessage({ conversationId, content, tts, signal, ...handlers }) {
+  const response = await fetch(buildUrl(`${CONVERSATIONS_PATH}/${encodeURIComponent(conversationId)}/messages`), {
+    method: 'POST',
+    headers: { Accept: 'text/event-stream, application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content, tts }),
+    signal,
+  })
+  return readMessageResponse(response, handlers)
+}
+
+/** Envoie un enregistrement audio (multipart) ; `lang` choisit le moteur de transcription (wo | fr). */
+async function postAudio({ conversationId, file, filename, lang, tts, signal, ...handlers }) {
+  const form = new FormData()
+  form.append('file', file, filename)
+  const query = new URLSearchParams({ lang, tts: String(tts) })
+
+  const response = await fetch(buildUrl(`${CONVERSATIONS_PATH}/${encodeURIComponent(conversationId)}/messages/audio?${query}`), {
+    method: 'POST',
+    // Pas de Content-Type manuel : le navigateur ajoute la frontière du multipart.
+    headers: { Accept: 'text/event-stream, application/json' },
+    body: form,
+    signal,
+  })
+  return readMessageResponse(response, handlers)
+}
+
+/**
+ * URL lisible d'un morceau de synthèse vocale. Le backend peut renvoyer une URL complète,
+ * un chemin absolu ou un simple nom de fichier servi par GET /conversations/audio/{filename}.
+ */
+export function resolveAudioUrl(audioUrl) {
+  if (!audioUrl) return ''
+  if (/^https?:\/\//i.test(audioUrl)) return audioUrl
+  if (audioUrl.startsWith('/')) return buildUrl(audioUrl)
+  return buildUrl(`${CONVERSATIONS_PATH}/audio/${encodeURIComponent(audioUrl)}`)
 }
 
 /**
@@ -197,16 +257,13 @@ export function sendChatMessage({
 
       // La création ne renvoie que la conversation : la réponse vient du message.
       if (!currentId) {
-        const conversation = await createConversation({ content, language, signal })
-        currentId = extractConversationId(conversation)
-        if (!currentId) throw new Error("Le backend n'a pas renvoyé d'identifiant de conversation.")
+        currentId = await createConversation({ question: content, language, signal })
         if (!cancelled) onConversationId?.(currentId)
       }
 
       let { answer, meta } = await postMessage({
         conversationId: currentId,
         content,
-        language,
         tts,
         signal,
         onChunk: (partial) => {
@@ -217,13 +274,73 @@ export function sendChatMessage({
 
       // Filet de sécurité si le flux n'a rien renvoyé d'exploitable.
       if (!answer && !cancelled) {
-        answer = await fetchLastMessage(currentId, signal)
+        answer = extractAnswer(await fetchMessages(currentId, signal))
       }
 
       if (!cancelled) {
         onResponse?.(answer)
         onComplete?.(meta)
       }
+    } catch (error) {
+      if (!cancelled && error.name !== 'AbortError') onError?.(error)
+    }
+  }
+
+  send()
+  return () => {
+    cancelled = true
+    controller.abort()
+  }
+}
+
+/**
+ * Envoie une question vocale et suit la réponse SSE (texte + morceaux audio).
+ * Crée la conversation au besoin. Retourne une fonction d'annulation.
+ */
+export function sendVoiceMessage({
+  conversationId,
+  file,
+  filename,
+  lang = 'wo',
+  tts = true,
+  onConversationId,
+  onResponse,
+  onAudioChunk,
+  onLanguageAlert,
+  onError,
+  onComplete,
+}) {
+  const controller = new AbortController()
+  let cancelled = false
+  const guard = (callback) => (...args) => {
+    if (!cancelled) callback?.(...args)
+  }
+
+  const send = async () => {
+    try {
+      const signal = controller.signal
+      let currentId = conversationId
+
+      if (!currentId) {
+        currentId = await createConversation({ question: VOICE_OPENERS[lang] ?? VOICE_OPENERS.fr, language: lang, signal })
+        guard(onConversationId)(currentId)
+      }
+
+      const { answer, meta } = await postAudio({
+        conversationId: currentId,
+        file,
+        filename,
+        lang,
+        tts,
+        signal,
+        onChunk: guard(onResponse),
+        onAudioChunk: guard(onAudioChunk),
+        onLanguageAlert: guard(onLanguageAlert),
+        isCancelled: () => cancelled,
+      })
+
+      guard(onResponse)(answer)
+      guard(onComplete)({ meta, conversationId: currentId })
     } catch (error) {
       if (!cancelled && error.name !== 'AbortError') onError?.(error)
     }

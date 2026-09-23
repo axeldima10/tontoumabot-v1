@@ -3,7 +3,7 @@ import { AudioLines, House, MessageCircle, MessageSquareText, Power, SquarePen, 
 import botImage from '../../assets/images/tontuma-bot.png'
 import { viewHref } from '../../hooks/useHashView'
 import { cn } from '../../lib/cn'
-import { TextSizeToggle, ThemeToggle } from './ThemeControls'
+import { ThemeToggle } from './ThemeControls'
 import '../../css/Sidebar.css'
 
 const navigation = [
@@ -114,7 +114,6 @@ function Sidebar({ view, open, isDesktop, recents, onClose, onNewChat, onOpenRec
         <div className="sidebar-footer">
           <div className="sidebar-prefs">
             <ThemeToggle labelled />
-            <TextSizeToggle />
           </div>
           <EndSessionButton onConfirm={onEndSession} />
           <p className="sidebar-credit">Propulsé de manière sécurisée par Tontouma Bot</p>

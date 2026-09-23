@@ -95,77 +95,33 @@ Le corps d'erreur devrait suivre un format constant :
 }
 ```
 
-## 2. Backend Python FastAPI : WebSocket vocal
+## 2. Question vocale (HTTP + SSE)
 
-### URL attendue
+### Endpoint
 
-```text
-wss://tontoumabot.com/ws/audio?token=<jwt>
+```http
+POST /api/v1/public/conversations/{id}/messages/audio?lang=wo|fr&tts=true
+Content-Type: multipart/form-data   (champ file : WebM, M4A, WAV ou MP3)
+Accept: text/event-stream
 ```
 
-Le front utilise `VITE_VOICE_SOCKET_URL` pour définir la base. Le chemin WebSocket
-exact doit être confirmé par l'équipe Python. Le front ne peut pas envoyer un
-header `Authorization` personnalisé pendant le handshake WebSocket standard ;
-le token doit donc être accepté dans la query string, dans un cookie sécurisé,
-ou via un mécanisme de handshake documenté.
+- `lang` choisit le moteur de transcription (wolof par défaut, 400 pour toute autre valeur) :
+  le front l'envoie à chaque question, selon la langue choisie par l'usager.
+- La réponse est le même flux SSE que les questions écrites : `message` ({delta}),
+  `audio-chunk` ({audioUrl, index, total}), `language-alert`, `error`, puis `done`.
+- Les morceaux audio sont lus via `GET /api/v1/public/conversations/audio/{filename}`.
+- La transcription de la question n'est pas dans le flux : le front la relit via `GET /{id}/messages`.
 
-### Sens front vers Python
+### Fonctionnement côté front (mode « mains libres »)
 
-Le navigateur capture le microphone avec `MediaRecorder`. Chaque événement
-`dataavailable` doit être envoyé comme paquet binaire brut :
+1. L'usager choisit sa langue (wolof ou français), l'écoute démarre aussitôt.
+2. `MediaRecorder` enregistre ; un détecteur d'activité vocale (`src/lib/vad.js`) mesure le volume
+   du micro et coupe l'enregistrement après 2 s de silence continu.
+3. L'audio est envoyé en une requête ; le texte s'affiche en direct et les morceaux audio sont joués dans l'ordre.
+4. À la fin de la réponse, l'écoute reprend automatiquement.
 
-```text
-Blob audio binaire
-```
-
-Il ne faut pas envelopper le Blob dans JSON. Le backend doit documenter le codec
-attendu, par exemple `audio/webm;codecs=opus`, `audio/ogg;codecs=opus` ou PCM.
-
-### Sens Python vers front
-
-Pour chaque résultat audio, Python renvoie un message binaire contenant les
-octets audio lisibles par le navigateur. Le front le transforme en `Blob` et
-appelle `onAudioReceived(audioBlob)`.
-
-Il faut confirmer :
-
-- le codec retourné ;
-- le sample rate ;
-- si le retour est de l'audio généré ou de la transcription ;
-- si les paquets sont autonomes ou doivent être concaténés ;
-- le marqueur de fin de réponse.
-
-### Messages de contrôle
-
-Si des messages JSON sont nécessaires pour le contrôle, ils doivent être
-réservés aux événements de contrôle et ne pas remplacer les paquets audio :
-
-```json
-{
-  "type": "session.ready",
-  "sessionId": "voice-session-uuid"
-}
-```
-
-```json
-{
-  "type": "session.error",
-  "code": "AUDIO_CODEC_UNSUPPORTED",
-  "message": "Le codec reçu n'est pas supporté."
-}
-```
-
-### Fermeture et erreurs
-
-Le serveur doit utiliser des codes WebSocket compréhensibles :
-
-- `1000` : fermeture normale ;
-- `1008` : token invalide ou autorisation refusée ;
-- `1011` : erreur interne ;
-- `1013` : service temporairement indisponible.
-
-Le serveur doit pouvoir fermer la connexion après un délai d'inactivité et
-retourner une raison exploitable pour le diagnostic.
+Sans conversation existante, le front la crée avec `organizationId` (`VITE_ORGANISATION_ID`) s'il est
+configuré, sinon avec une courte salutation comme `question` (l'API exige l'un des deux).
 
 ## 3. Sécurité et infrastructure
 
@@ -182,10 +138,11 @@ Les équipes backend doivent aussi fournir :
 
 ## 4. Fichiers front concernés
 
-- `src/services/chatService.js` : transport SSE texte uniquement ;
-- `src/services/voiceService.js` : transport WebSocket audio uniquement ;
+- `src/services/chatService.js` : transport HTTP + SSE (texte et voix) ;
+- `src/lib/vad.js` : détection de fin de phrase ;
+- `src/hooks/useVoiceAssistant.js` : boucle écoute → envoi → réponse audio ;
 - `src/services/authService.js` : lecture et gestion locale du JWT de session ;
-- `src/components/dashboard/QuestionComposer.jsx` : saisie et déclenchement texte ;
-- `src/components/dashboard/VoiceScreen.jsx` : capture `MediaRecorder`, envoi audio et lecture des réponses ;
+- `src/components/chat/ChatComposer.jsx` : saisie et déclenchement texte ;
+- `src/components/voice/VoiceView.jsx` : choix de la langue et écran vocal ;
 - `src/hooks/useDashboard.js` : état métier et orchestration ;
 - `.env` : URLs propres à l'environnement, sans secret commité.

@@ -1,4 +1,4 @@
-import { Moon, Sun, Type } from 'lucide-react'
+import { Moon, Sun } from 'lucide-react'
 import { useTheme } from '../../context/ThemeContext'
 import { cn } from '../../lib/cn'
 
@@ -16,19 +16,8 @@ export function ThemeToggle({ labelled = false, className }) {
       title={label}
     >
       <span className="icon-swap" key={dark ? 'sun' : 'moon'}>{dark ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}</span>
-      {labelled && <span aria-hidden="true">{dark ? 'Clair' : 'Sombre'}</span>}
+      {labelled && <span aria-hidden="true">{dark ? 'Thème clair' : 'Thème sombre'}</span>}
     </button>
   )
 }
 
-// Agrandit toute la typographie de l'application (les tailles sont exprimées en rem).
-export function TextSizeToggle() {
-  const { largeText, toggleLargeText } = useTheme()
-
-  return (
-    <button type="button" className="glass-pill" onClick={toggleLargeText} aria-pressed={largeText}>
-      <Type aria-hidden="true" />
-      <span>Texte agrandi</span>
-    </button>
-  )
-}

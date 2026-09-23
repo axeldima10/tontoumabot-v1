@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from 'react'
-import { Check, Copy, RotateCcw, Share2, Square, ThumbsDown, ThumbsUp, Volume2 } from 'lucide-react'
+import { Check, Copy, Mic, RotateCcw, Share2, Square, ThumbsDown, ThumbsUp, Volume2 } from 'lucide-react'
 import botImage from '../../assets/images/tontuma-bot.png'
 import { cn } from '../../lib/cn'
 import { gsap, MOTION_OK, useGSAP } from '../../lib/gsap'
@@ -111,7 +111,10 @@ function ChatMessage({ message, language, animate, onRetry }) {
     return (
       <div className="msg msg-user" ref={rowRef} id={`msg-${message.id}`}>
         <CopyButton text={message.content} className="msg-user-copy" />
-        <p className="msg-bubble">{message.content}</p>
+        <p className="msg-bubble">
+          {message.via === 'voice' && <Mic className="msg-voice-icon" aria-label="Question vocale :" />}
+          {message.content}
+        </p>
       </div>
     )
   }
@@ -139,10 +142,12 @@ function ChatMessage({ message, language, animate, onRetry }) {
         {status === 'error' && (
           <div className="msg-error" role="alert">
             <p>{message.error || 'Une erreur est survenue.'} Vérifiez votre connexion puis réessayez.</p>
-            <button type="button" className="glass-pill" onClick={() => onRetry(message.id)}>
-              <RotateCcw aria-hidden="true" />
-              Réessayer
-            </button>
+            {message.question && (
+              <button type="button" className="glass-pill" onClick={() => onRetry(message.id)}>
+                <RotateCcw aria-hidden="true" />
+                Réessayer
+              </button>
+            )}
           </div>
         )}
         {finished && content && <AssistantActions text={content} language={language} />}
