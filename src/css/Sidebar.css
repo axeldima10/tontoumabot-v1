@@ -157,9 +157,12 @@
   }
 }
 
+/* Seule la liste défile quand la hauteur manque : elle ne passe jamais sous le pied du menu. */
 .sidebar-recents {
-  flex: 1;
-  min-height: 0;
+  flex: 1 1 0;
+  min-height: 96px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .sidebar-label {
@@ -213,6 +216,90 @@
   }
 }
 
+.sidebar-hint {
+  margin: 12px 0 0;
+  padding: 0 14px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.sidebar-hint button {
+  color: var(--green-light);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.app-shell:not(.dark) .sidebar-hint button {
+  color: var(--green-dark);
+}
+
+.sidebar-account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  color: var(--text);
+  text-align: left;
+  background: var(--glass-tint);
+  transition: border-color 0.25s var(--ease-out), background 0.25s var(--ease-out);
+}
+
+@media (hover: hover) {
+  .sidebar-account.is-guest:hover {
+    border-color: color-mix(in srgb, var(--green) 45%, var(--glass-border));
+    background: color-mix(in srgb, var(--green) 14%, transparent);
+  }
+}
+
+.sidebar-avatar {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  color: var(--on-green);
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--green-light), var(--green-dark));
+}
+
+.sidebar-avatar svg {
+  width: 19px;
+  height: 19px;
+}
+
+.sidebar-account-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sidebar-account-text strong {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.sidebar-account-text span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-account-go {
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+}
+
 .sidebar-empty {
   margin: 0;
   padding: 0 14px;
@@ -222,6 +309,7 @@
 }
 
 .sidebar-footer {
+  flex: 0 0 auto;
   display: grid;
   gap: 10px;
   padding-top: 14px;
@@ -273,6 +361,21 @@
   }
 }
 
+.sidebar-intro {
+  justify-self: center;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.sidebar-intro:hover {
+  color: var(--text);
+}
+
 .sidebar-credit {
   margin: 0;
   color: var(--muted);
@@ -298,5 +401,53 @@
 
   .sidebar.glass {
     background: var(--glass-bg);
+  }
+}
+
+/* Écrans d'ordinateur peu hauts : le menu se resserre pour que l'historique garde de la place. */
+@media (min-width: 1024px) and (max-height: 760px) {
+  .sidebar {
+    gap: 12px;
+    padding: 16px 14px 14px;
+  }
+
+  .sidebar-logo {
+    width: 40px;
+    height: 40px;
+  }
+
+  .sidebar-account {
+    padding: 8px 10px;
+  }
+
+  .sidebar-new {
+    min-height: 44px;
+  }
+
+  .sidebar-nav a {
+    min-height: 40px;
+  }
+
+  /* Doublon de la ligne « Mode invité » en haut : retiré quand la place manque. */
+  .sidebar-hint {
+    display: none;
+  }
+
+  .sidebar-footer {
+    gap: 8px;
+    padding-top: 10px;
+  }
+
+  .sidebar-prefs .glass-pill,
+  .sidebar-end {
+    min-height: 38px;
+  }
+
+  .sidebar-recents {
+    min-height: 72px;
+  }
+
+  .sidebar-credit {
+    display: none;
   }
 }

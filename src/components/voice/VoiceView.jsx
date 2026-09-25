@@ -1,9 +1,10 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { Loader2, MessageSquareText, Mic, MicOff, Square, X } from 'lucide-react'
 import { voiceLanguageByCode } from '../../data/voiceLanguages'
 import { viewHref } from '../../hooks/useHashView'
 import useVoiceAssistant from '../../hooks/useVoiceAssistant'
 import { cn } from '../../lib/cn'
+import { plainText } from '../../lib/plainText'
 import { gsap, MOTION_OK, useGSAP } from '../../lib/gsap'
 import AppHeader from '../layout/AppHeader'
 import Flag from './Flag'
@@ -20,10 +21,6 @@ const titles = {
   unavailable: 'Mode vocal indisponible',
 }
 
-// Sous-titres : la réponse est affichée sans les marques de mise en forme (**gras**, listes, titres…).
-const MARKDOWN_MARKS = /(\*\*|`+|^#{1,4}\s+|^\s*[-*•]\s+)/gm
-const plainText = (text) => text.replace(MARKDOWN_MARKS, '')
-
 const micLabels = {
   idle: 'Commencer à parler',
   listening: 'J’ai fini de parler',
@@ -31,10 +28,33 @@ const micLabels = {
   speaking: 'Interrompre et reparler',
 }
 
+const HANDS_FREE_KEY = 'tontuma_voice_hands_free'
+
+function readHandsFree() {
+  try {
+    return localStorage.getItem(HANDS_FREE_KEY) !== 'off'
+  } catch {
+    return true
+  }
+}
+
 // Session vocale « mains libres » : une langue = une session (la clé du composant la réinitialise).
 function VoiceSession({ lang, chat, onChangeLanguage, onClose }) {
   const rootRef = useRef(null)
-  const { phase, heard, answer, notice, languageAlert, analyserRef, toggle } = useVoiceAssistant({ lang, chat })
+  // Mains libres : après chaque réponse, l'écoute reprend seule. À couper dans un lieu bruyant.
+  const [handsFree, setHandsFree] = useState(readHandsFree)
+  const { phase, heard, answer, notice, languageAlert, analyserRef, toggle } = useVoiceAssistant({ lang, chat, handsFree })
+
+  function toggleHandsFree() {
+    const next = !handsFree
+    setHandsFree(next)
+    try {
+      localStorage.setItem(HANDS_FREE_KEY, next ? 'on' : 'off')
+    } catch {
+      // Préférence non mémorisée (navigation privée) : elle reste valable pour cette session.
+    }
+  }
+
   const language = voiceLanguageByCode[lang]
   const suggested = languageAlert && voiceLanguageByCode[String(languageAlert.detectedLanguage).slice(0, 2).toLowerCase()]
 
@@ -79,6 +99,11 @@ function VoiceSession({ lang, chat, onChangeLanguage, onClose }) {
           )}
         </div>
       </section>
+
+      <button type="button" className="voice-handsfree" aria-pressed={handsFree} onClick={toggleHandsFree}>
+        <span className="voice-switch" aria-hidden="true" />
+        Écoute continue
+      </button>
 
       <div className="voice-controls" role="group" aria-label="Commandes vocales">
         <a className="voice-control glass-btn is-large" href={viewHref.chat} aria-label="Voir la conversation écrite" title="Voir la conversation écrite">

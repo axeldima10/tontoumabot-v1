@@ -1,7 +1,10 @@
+import { kioskConfig } from '../lib/kiosk'
+
 const BACKEND_URL = import.meta.env.VITE_TEXT_SESSION_URL || ''
 const CONVERSATIONS_PATH = '/api/v1/public/conversations'
-const ORGANISATION_ID = import.meta.env.VITE_ORGANISATION_ID || ''
-const BORNE_ID = import.meta.env.VITE_BORNE_ID || ''
+// Une borne peut préciser son organisation et son identifiant dans son adresse (voir lib/kiosk.js).
+const ORGANISATION_ID = kioskConfig?.organizationId || import.meta.env.VITE_ORGANISATION_ID || ''
+const BORNE_ID = kioskConfig?.borneId || import.meta.env.VITE_BORNE_ID || ''
 
 // Première phrase envoyée quand une conversation démarre à l'oral sans organisation configurée :
 // l'API exige soit `organizationId`, soit une `question` pour router vers la bonne structure.
@@ -27,10 +30,27 @@ async function readBody(response) {
 
 function assertOk(response, body) {
   if (response.ok) return
-  const message = typeof body === 'object' && body?.message
-    ? body.message
-    : `Le serveur conversationnel a répondu avec le statut ${response.status}.`
-  throw new Error(message)
+  const error = new Error(typeof body === 'object' && body?.message ? body.message : defaultErrorMessage(response.status))
+  error.status = response.status
+  throw error
+}
+
+// Messages affichés quand le serveur ne fournit pas d'explication : chacun indique quoi faire ensuite.
+function defaultErrorMessage(status) {
+  if (status === 429) return 'Trop de demandes en peu de temps. Patientez une minute puis réessayez.'
+  if (status === 404) return 'Cette conversation est introuvable. Commencez une nouvelle discussion.'
+  if (status >= 500) return 'Le service est momentanément indisponible. Réessayez dans quelques instants.'
+  return `Le serveur a refusé la demande (statut ${status}). Reformulez votre question ou réessayez.`
+}
+
+/** fetch() qui transforme une coupure réseau en message compréhensible par l'usager. */
+async function request(url, init) {
+  try {
+    return await fetch(url, init)
+  } catch (error) {
+    if (error.name === 'AbortError') throw error
+    throw new Error('Impossible de joindre le serveur. Vérifiez votre connexion internet puis réessayez.')
+  }
 }
 
 /** Récupère l'identifiant de conversation renvoyé par le backend. */
@@ -58,7 +78,7 @@ function extractAnswer(payload) {
 
 /** Historique complet d'une conversation (ordre chronologique). */
 export async function fetchMessages(conversationId, signal) {
-  const response = await fetch(buildUrl(`${CONVERSATIONS_PATH}/${encodeURIComponent(conversationId)}/messages`), {
+  const response = await request(buildUrl(`${CONVERSATIONS_PATH}/${encodeURIComponent(conversationId)}/messages`), {
     method: 'GET',
     headers: { Accept: 'application/json' },
     signal,
@@ -82,7 +102,7 @@ async function createConversation({ question, language, signal }) {
     ? { organizationId: ORGANISATION_ID, ...(BORNE_ID ? { borneId: BORNE_ID } : {}) }
     : { question }
 
-  const response = await fetch(buildUrl(CONVERSATIONS_PATH), {
+  const response = await request(buildUrl(CONVERSATIONS_PATH), {
     method: 'POST',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...target, language }),
@@ -196,7 +216,7 @@ async function readMessageResponse(response, handlers) {
 
 /** Envoie le message et lit la réponse, en flux SSE ou en JSON selon le backend. */
 async function postMessage({ conversationId, content, tts, signal, ...handlers }) {
-  const response = await fetch(buildUrl(`${CONVERSATIONS_PATH}/${encodeURIComponent(conversationId)}/messages`), {
+  const response = await request(buildUrl(`${CONVERSATIONS_PATH}/${encodeURIComponent(conversationId)}/messages`), {
     method: 'POST',
     headers: { Accept: 'text/event-stream, application/json', 'Content-Type': 'application/json' },
     body: JSON.stringify({ content, tts }),
@@ -211,7 +231,7 @@ async function postAudio({ conversationId, file, filename, lang, tts, signal, ..
   form.append('file', file, filename)
   const query = new URLSearchParams({ lang, tts: String(tts) })
 
-  const response = await fetch(buildUrl(`${CONVERSATIONS_PATH}/${encodeURIComponent(conversationId)}/messages/audio?${query}`), {
+  const response = await request(buildUrl(`${CONVERSATIONS_PATH}/${encodeURIComponent(conversationId)}/messages/audio?${query}`), {
     method: 'POST',
     // Pas de Content-Type manuel : le navigateur ajoute la frontière du multipart.
     headers: { Accept: 'text/event-stream, application/json' },

@@ -25,6 +25,10 @@ export function clearAccessToken() {
   localStorage.removeItem(ACCESS_TOKEN_KEY)
 }
 
+// Pages de connexion / inscription (à renseigner quand elles existeront) : vides = « bientôt disponible ».
+export const SIGN_IN_URL = import.meta.env.VITE_SIGN_IN_URL || ''
+export const SIGN_UP_URL = import.meta.env.VITE_SIGN_UP_URL || ''
+
 // Profil minimal ({ firstName, name, avatarUrl }) écrit par l'écran de connexion.
 const USER_KEY = 'tontuma_user'
 

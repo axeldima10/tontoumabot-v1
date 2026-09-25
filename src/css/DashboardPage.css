@@ -11,7 +11,7 @@
 }
 
 @media (min-width: 1024px) {
-  .app-shell {
+  .app-shell:not(.is-onboarding):not(.is-kiosk) {
     display: grid;
     grid-template-columns: 300px minmax(0, 1fr);
   }

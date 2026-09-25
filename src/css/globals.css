@@ -19,6 +19,12 @@
 
 * {
 	box-sizing: border-box;
+	/* Barres de défilement masquées partout : le défilement (molette, tactile, clavier) reste actif. */
+	scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+	display: none;
 }
 
 html,
@@ -266,6 +272,22 @@ svg {
 
 .dark .kicker {
 	color: var(--green-light);
+}
+
+/* Lien d'action en ligne (« Se connecter ») dans une phrase : home, discussion, présentation. */
+.home-guest button,
+.chat-disclaimer button,
+.ob-note button {
+	color: var(--green-light);
+	font-weight: 600;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+}
+
+.app-shell:not(.dark) .home-guest button,
+.app-shell:not(.dark) .chat-disclaimer button,
+.app-shell:not(.dark) .ob-note button {
+	color: var(--green-dark);
 }
 
 .sr-only {

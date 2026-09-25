@@ -1,0 +1,104 @@
+/* Invitation à installer la PWA : carte en verre ancrée en haut de l'écran. */
+.install-card {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top));
+  left: 50%;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(calc(100% - 24px), 460px);
+  padding: 12px 10px 12px 12px;
+  border-radius: 22px;
+  translate: -50% 0;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+}
+
+.install-icon {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  padding: 7px;
+  border-radius: 13px;
+  object-fit: contain;
+  background: var(--soft-green);
+}
+
+.install-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.install-text strong {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.install-text span {
+  color: var(--muted);
+}
+
+.install-inline {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  vertical-align: -3px;
+  color: var(--text);
+}
+
+.install-go {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  color: var(--on-green);
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--green), var(--green-dark));
+  box-shadow: 0 8px 20px -8px rgb(0 155 73 / 0.9);
+}
+
+.install-go svg {
+  width: 16px;
+  height: 16px;
+}
+
+.install-close {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--muted);
+}
+
+.install-close svg {
+  width: 17px;
+  height: 17px;
+}
+
+@media (hover: hover) {
+  .install-close:hover {
+    color: var(--text);
+    background: var(--glass-tint);
+  }
+}
+
+@media (min-width: 1024px) {
+  /* En haut à droite, sous les boutons d'en-tête : la zone de saisie en bas reste dégagée. */
+  .install-card {
+    top: 84px;
+    right: 24px;
+    left: auto;
+    translate: none;
+  }
+}

@@ -71,8 +71,17 @@ function ListenButton({ text, language }) {
   )
 }
 
-function AssistantActions({ text, language }) {
+function AssistantActions({ text, language, minimal }) {
   const [feedback, setFeedback] = useState(null)
+
+  // Borne : écran partagé, seule la lecture à voix haute a du sens (pas de copie ni de partage).
+  if (minimal) {
+    return canSpeak ? (
+      <div className="msg-actions" role="group" aria-label="Actions sur la réponse">
+        <ListenButton text={text} language={language} />
+      </div>
+    ) : null
+  }
 
   return (
     <div className="msg-actions" role="group" aria-label="Actions sur la réponse">
@@ -94,7 +103,7 @@ function AssistantActions({ text, language }) {
 }
 
 // Une ligne de conversation. Mémoïsée : seul le message en cours de flux se re-rend.
-function ChatMessage({ message, language, animate, onRetry }) {
+function ChatMessage({ message, language, animate, onRetry, minimal = false }) {
   const rowRef = useRef(null)
   const isUser = message.role === 'user'
 
@@ -110,7 +119,7 @@ function ChatMessage({ message, language, animate, onRetry }) {
   if (isUser) {
     return (
       <div className="msg msg-user" ref={rowRef} id={`msg-${message.id}`}>
-        <CopyButton text={message.content} className="msg-user-copy" />
+        {!minimal && <CopyButton text={message.content} className="msg-user-copy" />}
         <p className="msg-bubble">
           {message.via === 'voice' && <Mic className="msg-voice-icon" aria-label="Question vocale :" />}
           {message.content}
@@ -141,7 +150,7 @@ function ChatMessage({ message, language, animate, onRetry }) {
         {status === 'stopped' && <p className="msg-muted">Réponse interrompue.</p>}
         {status === 'error' && (
           <div className="msg-error" role="alert">
-            <p>{message.error || 'Une erreur est survenue.'} Vérifiez votre connexion puis réessayez.</p>
+            <p>{message.error || 'Une erreur est survenue. Réessayez dans quelques instants.'}</p>
             {message.question && (
               <button type="button" className="glass-pill" onClick={() => onRetry(message.id)}>
                 <RotateCcw aria-hidden="true" />
@@ -150,7 +159,7 @@ function ChatMessage({ message, language, animate, onRetry }) {
             )}
           </div>
         )}
-        {finished && content && <AssistantActions text={content} language={language} />}
+        {finished && content && <AssistantActions text={content} language={language} minimal={minimal} />}
       </div>
     </div>
   )

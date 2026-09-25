@@ -11,7 +11,7 @@ import '../../css/ChatView.css'
 const STICK_THRESHOLD = 96
 
 // Vue discussion : intro animée quand la conversation est vide, fil de messages ensuite.
-function ChatView({ chat, firstName, onMenu, onNewChat }) {
+function ChatView({ chat, firstName, isGuest, onMenu, onNewChat, onOpenAccount }) {
   const { messages, draft, setDraft, sendMessage, stopStreaming, isStreaming, language, cycleLanguage } = chat
   const scrollRef = useRef(null)
   const stickRef = useRef(true)
@@ -31,7 +31,8 @@ function ChatView({ chat, firstName, onMenu, onNewChat }) {
     // Après « Nouvelle discussion », les prochains messages sont de nouveau animés.
     if (!messages.length) initialCountRef.current = 0
     const scroller = scrollRef.current
-    if (scroller && stickRef.current) scroller.scrollTop = scroller.scrollHeight
+    // Sans message, l'intro se lit depuis le haut : on ne colle au bas que pour suivre la conversation.
+    if (scroller && stickRef.current && messages.length) scroller.scrollTop = scroller.scrollHeight
   }, [messages])
 
   function handleScroll() {
@@ -104,7 +105,14 @@ function ChatView({ chat, firstName, onMenu, onNewChat }) {
           language={language}
           onCycleLanguage={cycleLanguage}
         />
-        <p className="chat-disclaimer">Tontouma peut se tromper : vérifiez les informations importantes auprès du service concerné.</p>
+        {isGuest && hasMessages ? (
+          <p className="chat-disclaimer">
+            Mode invité : cette conversation ne sera pas conservée.{' '}
+            <button type="button" onClick={onOpenAccount}>Se connecter</button>
+          </p>
+        ) : (
+          <p className="chat-disclaimer">Tontouma peut se tromper : vérifiez les informations importantes auprès du service concerné.</p>
+        )}
         <p className="sr-only" aria-live="polite">
           {lastStatus === 'pending' ? 'Tontouma rédige une réponse…' : lastStatus === 'done' ? 'Réponse reçue.' : ''}
         </p>

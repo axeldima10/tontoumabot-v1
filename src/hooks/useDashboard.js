@@ -114,6 +114,7 @@ function useDashboard() {
     draft,
     setDraft,
     language,
+    setLanguage,
     cycleLanguage,
     isStreaming,
     sendMessage,

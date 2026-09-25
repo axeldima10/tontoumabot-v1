@@ -6,7 +6,8 @@ import { viewHref } from '../../hooks/useHashView'
 const MAX_HEIGHT = 168
 
 // Zone de saisie en verre : Entrée envoie, Maj + Entrée ajoute une ligne.
-function ChatComposer({ draft, onChange, onSubmit, onStop, isStreaming, language, onCycleLanguage }) {
+// Options borne : texte d'aide traduit, sans sélecteur de langue, micro géré par la page (onVoice).
+function ChatComposer({ draft, onChange, onSubmit, onStop, isStreaming, language, onCycleLanguage, placeholder = 'Posez votre question…', label = 'Votre question', showLanguage = true, showHint = true, onVoice, voiceLabel = 'Passer en mode vocal' }) {
   const inputRef = useRef(null)
   const canSend = draft.trim().length > 0
 
@@ -36,7 +37,7 @@ function ChatComposer({ draft, onChange, onSubmit, onStop, isStreaming, language
 
   return (
     <form className="composer glass" onSubmit={handleSubmit} aria-label="Écrire à Tontouma">
-      <label className="sr-only" htmlFor="chat-question">Votre question</label>
+      <label className="sr-only" htmlFor="chat-question">{label}</label>
       <textarea
         id="chat-question"
         ref={inputRef}
@@ -45,19 +46,27 @@ function ChatComposer({ draft, onChange, onSubmit, onStop, isStreaming, language
         value={draft}
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Posez votre question…"
+        placeholder={placeholder}
         autoComplete="off"
         enterKeyHint="send"
       />
       <div className="composer-bar">
-        <button type="button" className="composer-chip" onClick={onCycleLanguage} aria-label={`Langue de réponse : ${languageNames[language]}. Changer de langue`}>
-          <Globe2 aria-hidden="true" />
-          <span>{languageNames[language]}</span>
-        </button>
-        <span className="composer-hint only-desktop" aria-hidden="true">Maj + Entrée pour aller à la ligne</span>
-        <a className="composer-icon" href={viewHref.voice} aria-label="Passer en mode vocal" title="Mode vocal">
-          <Mic aria-hidden="true" />
-        </a>
+        {showLanguage && (
+          <button type="button" className="composer-chip" onClick={onCycleLanguage} aria-label={`Langue de réponse : ${languageNames[language]}. Changer de langue`}>
+            <Globe2 aria-hidden="true" />
+            <span>{languageNames[language]}</span>
+          </button>
+        )}
+        {showHint && <span className="composer-hint only-desktop" aria-hidden="true">Maj + Entrée pour aller à la ligne</span>}
+        {onVoice ? (
+          <button type="button" className="composer-icon" onClick={onVoice} aria-label={voiceLabel} title={voiceLabel}>
+            <Mic aria-hidden="true" />
+          </button>
+        ) : onVoice === null ? null : (
+          <a className="composer-icon" href={viewHref.voice} aria-label={voiceLabel} title={voiceLabel}>
+            <Mic aria-hidden="true" />
+          </a>
+        )}
         {isStreaming ? (
           <button type="button" className="composer-send is-stop" onClick={onStop} aria-label="Arrêter la réponse">
             <Square aria-hidden="true" />

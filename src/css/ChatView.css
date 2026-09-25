@@ -10,8 +10,6 @@
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--text) 18%, transparent) transparent;
 }
 
 .chat-thread {
@@ -49,15 +47,24 @@
 }
 
 /* ----- Intro (nouvelle discussion) ----- */
+/* Centrage par marges automatiques : si la hauteur manque, le haut (la mascotte) n'est jamais rogné. */
 .intro {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 8px;
   min-height: 100%;
   padding: 8px 16px 24px;
   text-align: center;
+}
+
+.intro > :first-child {
+  margin-top: auto;
+}
+
+.intro > :last-child {
+  margin-bottom: auto;
 }
 
 .intro-stage {

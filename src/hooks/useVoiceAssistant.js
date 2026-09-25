@@ -20,7 +20,7 @@ function extensionFor(mimeType) {
  *
  * Phases : starting | idle | listening | thinking | speaking | unavailable
  */
-function useVoiceAssistant({ lang, chat }) {
+function useVoiceAssistant({ lang, chat, handsFree = true }) {
   const [phase, setPhase] = useState('starting')
   const [heard, setHeard] = useState(false)
   const [answer, setAnswer] = useState('')
@@ -31,9 +31,11 @@ function useVoiceAssistant({ lang, chat }) {
   // Une session par montage : protège des doubles montages de StrictMode et des callbacks tardifs.
   const sessionRef = useRef(null)
   const chatRef = useRef(chat)
+  const handsFreeRef = useRef(handsFree)
 
   useLayoutEffect(() => {
     chatRef.current = chat
+    handsFreeRef.current = handsFree
   })
 
   async function setup(s) {
@@ -112,6 +114,7 @@ function useVoiceAssistant({ lang, chat }) {
     s.vad = createVoiceActivityDetector(s.micAnalyser, {
       silenceMs: 2000,
       onSpeechStart: () => setHeard(true),
+      onSpeechReset: () => setHeard(false),
       onSpeechEnd: () => finishListening(s, true),
       onNoSpeech: () => {
         finishListening(s, false)
@@ -279,8 +282,10 @@ function useVoiceAssistant({ lang, chat }) {
     queue.finished = true
     analyserRef.current = null
     if (s.disposed) return
-    // Conversation continue : Tontouma se remet à écouter, comme un assistant vocal.
-    startListening()
+    // Mains libres : Tontouma se remet à écouter, comme un assistant vocal.
+    // Sinon (lieu bruyant), il attend un appui pour la question suivante.
+    if (handsFreeRef.current) startListening()
+    else setPhase('idle')
   }
 
   function cancelTurn(s) {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { AudioLines, House, MessageCircle, MessageSquareText, Power, SquarePen, X } from 'lucide-react'
+import { AudioLines, ChevronRight, House, MessageCircle, MessageSquareText, Power, SquarePen, UserRound, X } from 'lucide-react'
 import botImage from '../../assets/images/tontuma-bot.png'
 import { viewHref } from '../../hooks/useHashView'
 import { cn } from '../../lib/cn'
@@ -40,7 +40,29 @@ function EndSessionButton({ onConfirm }) {
 }
 
 // Menu principal : colonne fixe sur ordinateur, tiroir modal sur mobile.
-function Sidebar({ view, open, isDesktop, recents, onClose, onNewChat, onOpenRecent, onEndSession }) {
+// Compte : invité par défaut ; la connexion est proposée pour conserver l'historique.
+function AccountRow({ user, onOpenAccount }) {
+  if (user) {
+    const name = user.firstName || user.name
+    return (
+      <div className="sidebar-account">
+        {user.avatarUrl
+          ? <img className="sidebar-avatar" src={user.avatarUrl} alt="" width="38" height="38" />
+          : <span className="sidebar-avatar" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span>}
+        <span className="sidebar-account-text"><strong>{name}</strong><span>Historique conservé</span></span>
+      </div>
+    )
+  }
+  return (
+    <button type="button" className="sidebar-account is-guest" onClick={onOpenAccount} aria-label="Mode invité : se connecter pour garder l’historique">
+      <span className="sidebar-avatar" aria-hidden="true"><UserRound /></span>
+      <span className="sidebar-account-text"><strong>Mode invité</strong><span>Se connecter</span></span>
+      <ChevronRight className="sidebar-account-go" aria-hidden="true" />
+    </button>
+  )
+}
+
+function Sidebar({ view, open, isDesktop, user, recents, onClose, onNewChat, onOpenRecent, onEndSession, onReplayIntro, onOpenAccount }) {
   const firstActionRef = useRef(null)
   const drawer = !isDesktop
 
@@ -79,6 +101,8 @@ function Sidebar({ view, open, isDesktop, recents, onClose, onNewChat, onOpenRec
           )}
         </div>
 
+        <AccountRow user={user} onOpenAccount={onOpenAccount} />
+
         <button type="button" className="sidebar-new" ref={firstActionRef} onClick={onNewChat}>
           <SquarePen aria-hidden="true" />
           Nouvelle discussion
@@ -94,7 +118,7 @@ function Sidebar({ view, open, isDesktop, recents, onClose, onNewChat, onOpenRec
         </nav>
 
         <div className="sidebar-recents">
-          <p className="sidebar-label">Cette discussion</p>
+          <p className="sidebar-label">{user ? 'Historique' : 'Cette discussion'}</p>
           {recents.length ? (
             <ul>
               {recents.map((message) => (
@@ -107,7 +131,13 @@ function Sidebar({ view, open, isDesktop, recents, onClose, onNewChat, onOpenRec
               ))}
             </ul>
           ) : (
-            <p className="sidebar-empty">Vos questions apparaîtront ici. Rien n’est conservé après la fin de la session.</p>
+            <p className="sidebar-empty">Vos questions apparaîtront ici.</p>
+          )}
+          {!user && (
+            <p className="sidebar-hint">
+              En mode invité, rien n’est conservé après la session.{' '}
+              <button type="button" onClick={onOpenAccount}>Se connecter</button>
+            </p>
           )}
         </div>
 
@@ -116,6 +146,7 @@ function Sidebar({ view, open, isDesktop, recents, onClose, onNewChat, onOpenRec
             <ThemeToggle labelled />
           </div>
           <EndSessionButton onConfirm={onEndSession} />
+          <button type="button" className="sidebar-intro" onClick={onReplayIntro}>Revoir la présentation</button>
           <p className="sidebar-credit">Propulsé de manière sécurisée par Tontouma Bot</p>
         </div>
       </aside>

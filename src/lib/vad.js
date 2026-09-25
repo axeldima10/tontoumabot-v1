@@ -4,6 +4,7 @@
  * 1. Calibration : les premières millisecondes mesurent le bruit ambiant.
  * 2. La parole commence quand le volume dépasse ce plancher pendant quelques trames.
  * 3. Après la parole, un silence continu de `silenceMs` signifie que l'usager a fini.
+ * Un bruit bref (moins de `minSpeechMs` de voix cumulée) est ignoré : l'écoute continue.
  * Sans parole pendant `noSpeechMs`, on abandonne (l'usager n'a rien dit).
  */
 const FRAME_MS = 50
@@ -14,8 +15,10 @@ export function createVoiceActivityDetector(analyser, {
   silenceMs = 2000,
   noSpeechMs = 8000,
   maxMs = 60000,
+  minSpeechMs = 500,
   onSpeechStart,
   onSpeechEnd,
+  onSpeechReset,
   onNoSpeech,
 } = {}) {
   const samples = new Uint8Array(analyser.fftSize)
@@ -26,6 +29,8 @@ export function createVoiceActivityDetector(analyser, {
   let loudFrames = 0
   let speaking = false
   let lastVoiceAt = 0
+  let voicedMs = 0
+  let noSpeechDeadline = noSpeechMs
   let finished = false
 
   function level() {
@@ -63,6 +68,7 @@ export function createVoiceActivityDetector(analyser, {
 
     if (rms > threshold) {
       loudFrames += 1
+      voicedMs += FRAME_MS
       lastVoiceAt = now
       if (!speaking && loudFrames >= SPEECH_FRAMES) {
         speaking = true
@@ -70,10 +76,20 @@ export function createVoiceActivityDetector(analyser, {
       }
     } else {
       loudFrames = 0
+      // Avant le début de la parole, un pic isolé ne compte pas comme de la voix.
+      if (!speaking) voicedMs = 0
     }
 
-    if (speaking && now - lastVoiceAt >= silenceMs) finish(onSpeechEnd)
-    else if (!speaking && elapsed >= noSpeechMs) finish(onNoSpeech)
+    if (speaking && now - lastVoiceAt >= silenceMs) {
+      if (voicedMs >= minSpeechMs) finish(onSpeechEnd)
+      else {
+        // Toux, porte, bruit de fond : pas assez de voix pour une question, on continue d'écouter.
+        speaking = false
+        voicedMs = 0
+        noSpeechDeadline = elapsed + noSpeechMs
+        onSpeechReset?.()
+      }
+    } else if (!speaking && elapsed >= noSpeechDeadline) finish(onNoSpeech)
     else if (elapsed >= maxMs) finish(speaking ? onSpeechEnd : onNoSpeech)
   }, FRAME_MS)
 

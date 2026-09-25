@@ -15,6 +15,15 @@ const flags = {
       <rect x="2" width="1" height="2" fill="#ed2939" />
     </>
   ),
+  gb: (
+    <>
+      <rect width="3" height="2" fill="#012169" />
+      <path d="M0 0L3 2M3 0L0 2" stroke="#fff" strokeWidth=".4" />
+      <path d="M0 0L3 2M3 0L0 2" stroke="#c8102e" strokeWidth=".13" />
+      <path d="M1.5 0V2M0 1H3" stroke="#fff" strokeWidth=".6" />
+      <path d="M1.5 0V2M0 1H3" stroke="#c8102e" strokeWidth=".36" />
+    </>
+  ),
 }
 
 // Pastille ronde : le drapeau 3:2 est recadré au centre.

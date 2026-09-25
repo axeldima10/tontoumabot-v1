@@ -31,7 +31,7 @@ function trackSpotlight(event) {
 }
 
 // Tableau de bord : accueil personnalisé, deux actions principales et reprises rapides.
-function HomeView({ user, recents, onMenu, onSuggestion, onOpenRecent }) {
+function HomeView({ user, recents, onMenu, onSuggestion, onOpenRecent, onOpenAccount }) {
   const rootRef = useRef(null)
   const now = new Date()
   const firstName = user?.firstName || user?.name?.split(' ')[0]
@@ -75,7 +75,13 @@ function HomeView({ user, recents, onMenu, onSuggestion, onOpenRecent }) {
           ) : null}
           <p>
             <span>{greetingFor(now.getHours())}{firstName ? `, ${firstName}` : ''}</span>
-            {user ? 'Heureux de vous revoir' : <span className="home-guest">Mode invité · aucune connexion requise</span>}
+            {user ? 'Heureux de vous revoir' : (
+              <span className="home-guest">
+                Mode invité ·{' '}
+                <button type="button" onClick={onOpenAccount}>Se connecter</button>
+                {' '}pour garder l’historique
+              </span>
+            )}
           </p>
         </div>
         <h1 id="home-title">Comment <span className="nowrap">puis-je</span> vous aider aujourd’hui&nbsp;?</h1>
