@@ -10,7 +10,6 @@ const generalTopics = [
     label: {
       fr: 'Quels documents dois-je apporter ?',
       wo: 'Ban kayit laa wara indi ?',
-      en: 'Which documents should I bring?',
     },
   },
   {
@@ -19,7 +18,6 @@ const generalTopics = [
     label: {
       fr: 'À quel guichet dois-je m’adresser ?',
       wo: 'Ban guichet laa wara dem ?',
-      en: 'Which desk should I go to?',
     },
   },
   {
@@ -28,7 +26,6 @@ const generalTopics = [
     label: {
       fr: 'Quels sont les horaires d’ouverture ?',
       wo: 'Ban waxtu ngeen di ubbi ?',
-      en: 'What are the opening hours?',
     },
   },
   {
@@ -37,7 +34,6 @@ const generalTopics = [
     label: {
       fr: 'Combien coûte ma démarche ?',
       wo: 'Ñaata la sama démarche di jar ?',
-      en: 'How much does my procedure cost?',
     },
   },
   {
@@ -46,7 +42,6 @@ const generalTopics = [
     label: {
       fr: 'En combien de temps aurai-je mon document ?',
       wo: 'Kañ laa am sama kayit ?',
-      en: 'How long until I get my document?',
     },
   },
   {
@@ -55,7 +50,6 @@ const generalTopics = [
     label: {
       fr: 'Comment suivre ma demande ?',
       wo: 'Naka laa mëna topp sama laaj ?',
-      en: 'How can I track my request?',
     },
   },
 ]
@@ -65,7 +59,7 @@ const generalTopics = [
  * Même format que ci-dessus ; à remplacer plus tard par un appel au backend.
  */
 const topicsByOrganization = {
-  // 'id-de-l-organisation': [ { id, icon, label: { fr, wo, en } }, … ],
+  // 'id-de-l-organisation': [ { id, icon, label: { fr, wo } }, … ],
 }
 
 const withTypo = (topics) => topics.map((topic) => ({

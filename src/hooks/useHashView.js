@@ -13,8 +13,11 @@ const viewByHash = {
   '#vocal': 'voice',
 }
 
+// Sans ancre, l'application s'ouvre sur le mode vocal : c'est l'usage principal.
+const DEFAULT_VIEW = 'voice'
+
 function readView() {
-  return viewByHash[window.location.hash] ?? 'home'
+  return viewByHash[window.location.hash] ?? DEFAULT_VIEW
 }
 
 function subscribe(callback) {
@@ -23,7 +26,7 @@ function subscribe(callback) {
 }
 
 function useHashView() {
-  const view = useSyncExternalStore(subscribe, readView, () => 'home')
+  const view = useSyncExternalStore(subscribe, readView, () => DEFAULT_VIEW)
 
   const navigate = useCallback((nextView) => {
     const hash = viewHref[nextView]

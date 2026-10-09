@@ -54,7 +54,7 @@ function KioskPage({ config }) {
     const target = screen === 'language' ? returnToRef.current : screen
     setLang(code)
     chat.setLanguage(code.toUpperCase())
-    // En anglais, pas de voix : on revient à l'accueil plutôt qu'à un écran vocal indisponible.
+    // Langue sans voix (aucune aujourd'hui) : on revient à l'accueil plutôt qu'à un écran vocal indisponible.
     setScreen(target === 'voice' && !kioskLanguageByCode[code].voice ? 'home' : target)
     returnToRef.current = 'home'
   }
@@ -82,7 +82,7 @@ function KioskPage({ config }) {
   }
 
   return (
-    <div className={cn('app-shell dark is-kiosk', `kiosk-on-${screen}`)}>
+    <div className={cn('app-shell is-kiosk', `kiosk-on-${screen}`)}>
       <AppBackground />
       <main className="kiosk">
         {inVisit && lang && (

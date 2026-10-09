@@ -93,7 +93,7 @@ function HomeView({ user, recents, onMenu, onSuggestion, onOpenRecent, onOpenAcc
             <div className="hero-copy">
               <p className="kicker">Accueil · Orientation · Démarches</p>
               <h2>Vos démarches administratives, simplifiées.</h2>
-              <p>Je vous accueille, vous oriente et vous accompagne pas à pas, en français, en wolof ou en anglais.</p>
+              <p>Je vous accueille, vous oriente et vous accompagne pas à pas, en français ou en wolof.</p>
               <a className="hero-cta" href={viewHref.chat}>
                 Commencer
                 <ArrowUpRight aria-hidden="true" />
@@ -158,7 +158,6 @@ function HomeView({ user, recents, onMenu, onSuggestion, onOpenRecent, onOpenAcc
             <ul aria-label="Langues disponibles">
               <li>Français</li>
               <li>Wolof</li>
-              <li>English</li>
             </ul>
           </div>
         </section>

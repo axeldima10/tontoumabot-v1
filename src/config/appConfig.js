@@ -2,5 +2,5 @@
 export const appConfig = {
   name: 'TONTUMA-BOT',
   version: 'v1.0',
-  availableLanguages: ['FR', 'WO', 'EN'],
+  availableLanguages: ['FR', 'WO'],
 }

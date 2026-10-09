@@ -15,13 +15,14 @@ function extensionFor(mimeType) {
 }
 
 /**
- * Assistant vocal « mains libres » façon Siri / Alexa :
- * écoute → détection de fin de phrase (VAD) → envoi HTTP → réponse SSE (texte + audio) → nouvelle écoute.
+ * Assistant vocal façon Siri / Alexa : l'usager lance la conversation en touchant le micro, puis elle s'enchaîne seule.
+ * appui → écoute → détection de fin de phrase (VAD) → envoi HTTP → réponse SSE (texte + audio) → nouvelle écoute.
+ * Elle s'arrête quand l'usager touche « Annuler » ou ne dit plus rien.
  *
- * Phases : starting | idle | listening | thinking | speaking | unavailable
+ * Phases : idle | starting | listening | thinking | speaking | unavailable
  */
 function useVoiceAssistant({ lang, chat, handsFree = true }) {
-  const [phase, setPhase] = useState('starting')
+  const [phase, setPhase] = useState('idle')
   const [heard, setHeard] = useState(false)
   const [answer, setAnswer] = useState('')
   const [notice, setNotice] = useState('')
@@ -85,7 +86,11 @@ function useVoiceAssistant({ lang, chat, handsFree = true }) {
     // Interrompre Tontouma pour reparler annule la réponse en cours.
     cancelTurn(s)
     stopPlayback(s)
-    if (!s.stream && !(await setup(s))) return
+    if (!s.stream) {
+      // Premier appui : le navigateur demande l'autorisation du micro.
+      setPhase('starting')
+      if (!(await setup(s))) return
+    }
     if (s.disposed) return
 
     if (s.ctx.state === 'suspended') {
@@ -360,8 +365,8 @@ function useVoiceAssistant({ lang, chat, handsFree = true }) {
     }
     if (queue.failed) setNotice('Une partie de la réponse vocale n’a pas pu être lue.')
 
-    // Mains libres : Tontouma se remet à écouter, comme un assistant vocal.
-    // Sinon (lieu bruyant), il attend un appui pour la question suivante.
+    // La conversation s'enchaîne : Tontouma se remet à écouter sans nouvel appui.
+    // Avec handsFree à false, il attendrait un appui pour chaque question.
     if (handsFreeRef.current) startListening()
     else setPhase('idle')
   }
@@ -373,22 +378,31 @@ function useVoiceAssistant({ lang, chat, handsFree = true }) {
     s.turn = null
   }
 
-  /** Bouton principal : parler, terminer sa phrase, annuler l'attente ou interrompre la réponse. */
+  /** Bouton principal : parler, terminer sa phrase ou interrompre la réponse pour reparler. */
   function toggle() {
     const s = sessionRef.current
     if (!s) return
     if (phase === 'listening') finishListening(s, true)
-    else if (phase === 'thinking') {
-      cancelTurn(s)
-      setPhase('idle')
-    } else if (phase === 'speaking' || phase === 'idle') startListening()
+    else if (phase === 'speaking' || phase === 'idle') startListening()
+  }
+
+  /** Bouton « Annuler » : coupe l'écoute, l'attente ou la réponse en cours ; l'usager reste sur l'écran vocal. */
+  function cancel() {
+    const s = sessionRef.current
+    if (!s) return
+    finishListening(s, false)
+    cancelTurn(s)
+    stopPlayback(s)
+    analyserRef.current = null
+    setHeard(false)
+    setNotice('')
+    setPhase('idle')
   }
 
   useEffect(() => {
     const s = { disposed: false }
     sessionRef.current = s
-    // Arrivée sur l'écran = intention de parler : l'écoute démarre immédiatement.
-    startListening()
+    // Rien ne démarre à l'arrivée : l'usager touche le micro quand il est prêt.
 
     return () => {
       s.disposed = true
@@ -407,7 +421,7 @@ function useVoiceAssistant({ lang, chat, handsFree = true }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  return { phase, heard, answer, audioFailed, notice, languageAlert, analyserRef, toggle }
+  return { phase, heard, answer, audioFailed, notice, languageAlert, analyserRef, toggle, cancel }
 }
 
 export default useVoiceAssistant

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Keyboard, Loader2, Mic, MicOff, Square } from 'lucide-react'
+import { Keyboard, Loader2, Mic, MicOff, Square, X } from 'lucide-react'
 import { kioskLanguageByCode } from '../../data/kioskCopy'
 import useVoiceAssistant from '../../hooks/useVoiceAssistant'
 import { cn } from '../../lib/cn'
@@ -9,10 +9,10 @@ import Flag from '../voice/Flag'
 import VoiceOrb from '../voice/VoiceOrb'
 import '../../css/VoiceView.css'
 
-// Voix à la borne : pas d'écoute continue (lieu public, bruit ambiant), on touche le micro à chaque question.
+// Voix à la borne : l'usager touche le micro pour commencer, puis la conversation s'enchaîne jusqu'à « Annuler » ou un silence.
 function KioskVoice({ lang, chat, copy, onBusyChange, onWrite, onChangeLanguage }) {
   const rootRef = useRef(null)
-  const { phase, heard, answer, audioFailed, notice, languageAlert, analyserRef, toggle } = useVoiceAssistant({ lang, chat, handsFree: false })
+  const { phase, heard, answer, audioFailed, notice, languageAlert, analyserRef, toggle, cancel } = useVoiceAssistant({ lang, chat })
   const busy = phase === 'listening' || phase === 'thinking' || phase === 'speaking'
 
   useEffect(() => {
@@ -37,9 +37,11 @@ function KioskVoice({ lang, chat, copy, onBusyChange, onWrite, onChangeLanguage 
   const title = phase === 'listening' && heard ? copy.phases.heard : copy.phases[phase]
   // Mode vocal = réponse entendue, pas lue : le texte n'apparaît qu'en secours, si l'audio n'a pas pu être joué.
   const showAnswer = audioFailed && Boolean(answer) && phase !== 'listening'
-  const hint = notice || (phase === 'listening' ? copy.voiceHint : phase === 'thinking' ? copy.thinkingHint : '')
+  const hint = notice || (phase === 'listening' ? copy.voiceHint
+    : phase === 'thinking' ? copy.thinkingHint
+      : phase === 'idle' ? copy.idleHint : '')
   const micLabel = phase === 'listening' ? copy.micStop
-    : phase === 'thinking' ? copy.micCancel
+    : phase === 'thinking' || phase === 'starting' ? copy.micWait
       : phase === 'speaking' ? copy.micInterrupt : copy.micStart
 
   return (
@@ -71,17 +73,20 @@ function KioskVoice({ lang, chat, copy, onBusyChange, onWrite, onChangeLanguage 
           type="button"
           className={cn('kvoice-control kvoice-mic', `is-${phase}`)}
           onClick={toggle}
-          disabled={phase === 'starting' || phase === 'unavailable'}
+          disabled={phase === 'starting' || phase === 'thinking' || phase === 'unavailable'}
           aria-label={micLabel}
         >
           <span className="kvoice-mic-disc" aria-hidden="true">
             {phase === 'unavailable' ? <MicOff />
-              : phase === 'thinking' ? <Loader2 className="spin" />
+              : phase === 'thinking' || phase === 'starting' ? <Loader2 className="spin" />
                 : phase === 'speaking' || phase === 'listening' ? <Square className="icon-fill" /> : <Mic />}
           </span>
           <span className="kvoice-mic-label" aria-hidden="true">{micLabel}</span>
         </button>
-        <span className="kvoice-side-spacer" aria-hidden="true" />
+        <button type="button" className="kvoice-control kvoice-side glass" onClick={cancel} disabled={!busy}>
+          <X aria-hidden="true" />
+          <span>{copy.micCancel}</span>
+        </button>
       </div>
     </section>
   )

@@ -6,7 +6,7 @@ import Flag from '../voice/Flag'
 
 // Chaque illustration anime sa propre entrée au montage (la diapositive est remontée à chaque étape).
 
-/** Écran 1 : la mascotte entourée de bulles dans les trois langues. */
+/** Écran 1 : la mascotte entourée de bulles dans les deux langues. */
 export function MeetVisual() {
   const rootRef = useRef(null)
 
@@ -38,7 +38,7 @@ export function MeetVisual() {
       <span className="meet-bubble-float is-a"><span className="meet-bubble is-light">Bonjour ! 👋</span></span>
       <span className="meet-bubble-float is-b"><span className="meet-bubble is-green" lang="wo">Na nga def ?</span></span>
       <span className="meet-bubble-float is-c"><span className="meet-bubble is-green">Comment puis-je vous aider ?</span></span>
-      <span className="meet-bubble-float is-d"><span className="meet-bubble is-glass" lang="en">Hello!</span></span>
+      <span className="meet-bubble-float is-d"><span className="meet-bubble is-glass" lang="wo">Salaamaalekum</span></span>
     </div>
   )
 }

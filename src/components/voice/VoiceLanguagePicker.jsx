@@ -41,7 +41,7 @@ function VoiceLanguagePicker({ onSelect }) {
           </li>
         ))}
       </ul>
-      <p className="lang-note">Vous pourrez changer de langue à tout moment. L’anglais reste disponible à l’écrit.</p>
+      <p className="lang-note">Vous pourrez changer de langue à tout moment.</p>
     </section>
   )
 }

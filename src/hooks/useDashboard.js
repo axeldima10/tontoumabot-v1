@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { sendChatMessage } from '../services/chatService'
 
-export const languages = ['FR', 'WO', 'EN']
-export const languageNames = { FR: 'Français', WO: 'Wolof', EN: 'English' }
+export const languages = ['FR', 'WO']
+export const languageNames = { FR: 'Français', WO: 'Wolof' }
 
 // Ce hook regroupe l'état de la conversation pour garder les vues principalement déclaratives.
 function useDashboard() {

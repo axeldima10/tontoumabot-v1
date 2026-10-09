@@ -7,11 +7,11 @@ const SLIDE_SECONDS = 3.2
 const bubbles = [
   { text: 'Na nga def ?', lang: 'wo' },
   { text: 'Bonjour !', lang: 'fr' },
-  { text: 'Hello!', lang: 'en' },
+  { text: 'Bienvenue !', lang: 'fr' },
   { text: 'Salaamaalekum', lang: 'wo' },
 ]
 
-// Écran de veille : le robot attire l'œil de loin, les salutations défilent dans les trois langues.
+// Écran de veille : le robot attire l'œil de loin, les salutations défilent dans les deux langues.
 function KioskAttract({ onStart }) {
   const rootRef = useRef(null)
 
@@ -49,7 +49,7 @@ function KioskAttract({ onStart }) {
   }, { scope: rootRef })
 
   return (
-    <button type="button" className="kiosk-attract" ref={rootRef} onClick={onStart} aria-label="Toucher pour commencer · Laal ngir tàmbali · Touch to start">
+    <button type="button" className="kiosk-attract" ref={rootRef} onClick={onStart} aria-label="Toucher pour commencer · Laal ngir tàmbali">
       <span className="attract-brand">
         <img src={botImage} alt="" width="432" height="430" />
         <span translate="no">TONTOUMA-BOT</span>
@@ -78,7 +78,6 @@ function KioskAttract({ onStart }) {
       <span className="attract-foot" aria-hidden="true">
         <span>Wolof</span>
         <span>Français</span>
-        <span>English</span>
       </span>
     </button>
   )

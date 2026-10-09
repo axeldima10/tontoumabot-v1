@@ -1,9 +1,8 @@
-// Textes de la borne dans les trois langues d'accueil.
+// Textes de la borne dans les deux langues d'accueil.
 // Le wolof est une première proposition : à faire relire par un locuteur natif avant la mise en service.
 export const kioskLanguages = [
   { code: 'wo', name: 'Wolof', flag: 'sn', tagline: 'Wax ci Wolof', voice: true },
   { code: 'fr', name: 'Français', flag: 'fr', tagline: 'Parler en français', voice: true },
-  { code: 'en', name: 'English', flag: 'gb', tagline: 'Speak in English', voice: false },
 ]
 
 export const kioskLanguageByCode = Object.fromEntries(kioskLanguages.map((language) => [language.code, language]))
@@ -12,13 +11,11 @@ export const kioskLanguageByCode = Object.fromEntries(kioskLanguages.map((langua
 export const attractSlides = [
   { lang: 'wo', greeting: 'Dalal ak jàmm', touch: 'Laal ekraan bi ngir tàmbali' },
   { lang: 'fr', greeting: 'Bienvenue', touch: 'Touchez l’écran pour commencer' },
-  { lang: 'en', greeting: 'Welcome', touch: 'Touch the screen to start' },
 ]
 
 export const languagePrompt = [
   { lang: 'fr', text: 'Choisissez votre langue' },
   { lang: 'wo', text: 'Tànnal sa làkk' },
-  { lang: 'en', text: 'Choose your language' },
 ]
 
 const rawCopy = {
@@ -29,7 +26,6 @@ const rawCopy = {
     speakSub: 'Posez votre question à voix haute',
     write: 'Écrire',
     writeSub: 'Tapez votre question',
-    voiceOnly: '',
     topics: 'Questions fréquentes',
     privacy: 'Anonyme · Rien n’est conservé après votre départ',
     phone: 'Sur mon téléphone',
@@ -47,6 +43,8 @@ const rawCopy = {
     },
     voiceHint: 'Parlez naturellement, puis marquez une pause.',
     thinkingHint: 'Je prépare ma réponse…',
+    idleHint: 'Je vous réponds à voix haute, puis je vous réécoute. Touchez « Annuler » pour arrêter.',
+    micWait: 'Patientez…',
     micStart: 'Parler',
     micStop: 'J’ai fini',
     micCancel: 'Annuler',
@@ -79,7 +77,6 @@ const rawCopy = {
     speakSub: 'Laajal sa laaj ci sa baat',
     write: 'Bind',
     writeSub: 'Bindal sa laaj',
-    voiceOnly: '',
     topics: 'Laaj yi ëpp',
     privacy: 'Sa tur du feeñ · Dara du des bu nga demee',
     phone: 'Ci sama telefon',
@@ -97,6 +94,8 @@ const rawCopy = {
     },
     voiceHint: 'Waxal ni nga baax, te taxaw tuuti bu nga noppee.',
     thinkingHint: 'Maa ngi waajal tontu bi…',
+    idleHint: 'Dinaa la tontu ci kaw, te dinaa la dégluwaat. Laal « Bàyyi » ngir taxawal.',
+    micWait: 'Xaaral…',
     micStart: 'Wax',
     micStop: 'Noppi naa',
     micCancel: 'Bàyyi',
@@ -121,56 +120,6 @@ const rawCopy = {
     newVisit: 'Beneen ganesu',
     backIn: (seconds) => `Dellu ci njëlbéen ci ${seconds} s`,
     close: 'Tëj',
-  },
-  en: {
-    brandLine: 'Your assistant for administrative procedures',
-    hello: 'How can I help you?',
-    speak: 'Speak',
-    speakSub: 'Ask your question out loud',
-    write: 'Type',
-    writeSub: 'Type your question',
-    voiceOnly: 'Voice is available in Wolof and French.',
-    topics: 'Frequent questions',
-    privacy: 'Anonymous · Nothing is kept after you leave',
-    phone: 'On my phone',
-    home: 'Home',
-    language: 'Language',
-    end: 'Finish',
-    phases: {
-      starting: 'One moment…',
-      idle: 'Touch the microphone to speak',
-      listening: 'I’m listening…',
-      heard: 'I can hear you…',
-      thinking: 'Thinking…',
-      speaking: 'Here is my answer',
-      unavailable: 'Microphone unavailable',
-    },
-    voiceHint: 'Speak naturally, then pause.',
-    thinkingHint: 'Preparing my answer…',
-    micStart: 'Speak',
-    micStop: 'I’m done',
-    micCancel: 'Cancel',
-    micInterrupt: 'Speak again',
-    toWrite: 'Type',
-    toVoice: 'Speak',
-    writeTitle: 'Type your question',
-    writeLead: 'Or touch a frequent question.',
-    placeholder: 'Type your question here…',
-    send: 'Send',
-    switchTo: (name) => `Switch to ${name}`,
-    detected: (name) => `It sounds like you are speaking ${name}.`,
-    stillThere: 'Are you still there?',
-    stillThereLead: 'To protect your privacy, this session will close and everything will be erased.',
-    keepGoing: 'I’m still here',
-    endNow: 'Finish now',
-    closingIn: (seconds) => `Closing in ${seconds} s`,
-    thanks: 'Thank you for your visit!',
-    erased: 'Your conversation has been erased from this kiosk.',
-    qrTitle: 'Continue on your phone',
-    qrLead: 'Scan this code to take Tontouma with you, for free.',
-    newVisit: 'New visit',
-    backIn: (seconds) => `Back to the start in ${seconds} s`,
-    close: 'Close',
   },
 }
 

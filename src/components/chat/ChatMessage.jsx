@@ -5,7 +5,7 @@ import { cn } from '../../lib/cn'
 import { gsap, MOTION_OK, useGSAP } from '../../lib/gsap'
 import FormattedText from './FormattedText'
 
-const speechLang = { FR: 'fr-FR', WO: 'fr-SN', EN: 'en-US' }
+const speechLang = { FR: 'fr-FR', WO: 'fr-SN' }
 const canSpeak = typeof window !== 'undefined' && 'speechSynthesis' in window
 const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 

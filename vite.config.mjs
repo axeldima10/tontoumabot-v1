@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => {
         manifest: {
           name: 'Tontouma Bot — Assistant administratif',
           short_name: 'Tontouma',
-          description: 'Votre assistant d’accueil, d’orientation et d’accompagnement dans les démarches administratives, en français, wolof et anglais.',
+          description: 'Votre assistant d’accueil, d’orientation et d’accompagnement dans les démarches administratives, en français et en wolof.',
           lang: 'fr',
           dir: 'ltr',
           start_url: '/',

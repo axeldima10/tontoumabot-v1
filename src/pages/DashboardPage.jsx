@@ -66,7 +66,8 @@ function DashboardPage() {
   function finishOnboarding() {
     markOnboardingDone()
     setOnboarding(false)
-    navigate('home')
+    // Après la présentation, l'usager arrive là où il peut parler tout de suite.
+    navigate('voice')
   }
 
   function signInFromOnboarding() {
@@ -120,7 +121,7 @@ function DashboardPage() {
         {view === 'chat' ? (
           <ChatView chat={chat} firstName={firstName} isGuest={!user} onMenu={openMenu} onNewChat={newChat} onOpenAccount={openAccount} />
         ) : view === 'voice' ? (
-          <VoiceView chat={chat} onMenu={openMenu} onClose={() => navigate('home')} />
+          <VoiceView chat={chat} onMenu={openMenu} />
         ) : (
           <HomeView user={user} recents={recents} onMenu={openMenu} onSuggestion={startWith} onOpenRecent={openRecent} onOpenAccount={openAccount} />
         )}

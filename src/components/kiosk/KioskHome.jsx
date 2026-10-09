@@ -50,7 +50,6 @@ function KioskHome({ copy, lang, canSpeak, topics, onSpeak, onWrite, onTopic, on
             <span>{copy.writeSub}</span>
           </span>
         </button>
-        {copy.voiceOnly && <p className="khome-note">{copy.voiceOnly}</p>}
       </div>
 
       <div className="khome-topics">

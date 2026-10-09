@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { Loader2, MessageSquareText, Mic, MicOff, Square, X } from 'lucide-react'
 import { voiceLanguageByCode } from '../../data/voiceLanguages'
 import { viewHref } from '../../hooks/useHashView'
@@ -14,46 +14,28 @@ import '../../css/VoiceView.css'
 
 const titles = {
   starting: 'Un instant…',
-  idle: 'Touchez pour parler',
+  idle: 'Touchez le micro pour parler',
   listening: 'Je vous écoute…',
   thinking: 'Je réfléchis…',
   speaking: 'Je vous réponds',
   unavailable: 'Mode vocal indisponible',
 }
 
+// Libellé affiché sous le micro, et sa version complète pour les lecteurs d'écran.
 const micLabels = {
-  idle: 'Commencer à parler',
-  listening: 'J’ai fini de parler',
-  thinking: 'Annuler la demande',
-  speaking: 'Interrompre et reparler',
+  starting: ['Un instant…', 'Ouverture du micro'],
+  idle: ['Parler', 'Commencer à parler'],
+  listening: ['J’ai fini', 'J’ai fini de parler'],
+  thinking: ['Patientez…', 'Réponse en préparation'],
+  speaking: ['Reparler', 'Interrompre et reparler'],
+  unavailable: ['Indisponible', 'Micro indisponible'],
 }
 
-const HANDS_FREE_KEY = 'tontuma_voice_hands_free'
-
-function readHandsFree() {
-  try {
-    return localStorage.getItem(HANDS_FREE_KEY) !== 'off'
-  } catch {
-    return true
-  }
-}
-
-// Session vocale « mains libres » : une langue = une session (la clé du composant la réinitialise).
-function VoiceSession({ lang, chat, onChangeLanguage, onClose }) {
+// Session vocale : l'usager touche le micro pour commencer, puis la conversation s'enchaîne seule.
+// Une langue = une session (la clé du composant la réinitialise).
+function VoiceSession({ lang, chat, onChangeLanguage }) {
   const rootRef = useRef(null)
-  // Mains libres : après chaque réponse, l'écoute reprend seule. À couper dans un lieu bruyant.
-  const [handsFree, setHandsFree] = useState(readHandsFree)
-  const { phase, heard, answer, audioFailed, notice, languageAlert, analyserRef, toggle } = useVoiceAssistant({ lang, chat, handsFree })
-
-  function toggleHandsFree() {
-    const next = !handsFree
-    setHandsFree(next)
-    try {
-      localStorage.setItem(HANDS_FREE_KEY, next ? 'on' : 'off')
-    } catch {
-      // Préférence non mémorisée (navigation privée) : elle reste valable pour cette session.
-    }
-  }
+  const { phase, heard, answer, audioFailed, notice, languageAlert, analyserRef, toggle, cancel } = useVoiceAssistant({ lang, chat })
 
   const language = voiceLanguageByCode[lang]
   const suggested = languageAlert && voiceLanguageByCode[String(languageAlert.detectedLanguage).slice(0, 2).toLowerCase()]
@@ -75,8 +57,13 @@ function VoiceSession({ lang, chat, onChangeLanguage, onClose }) {
   const showAnswer = audioFailed && Boolean(answer) && phase !== 'listening'
   const caption = notice || (phase === 'listening'
     ? `Parlez naturellement en ${language.name.toLowerCase()}. Je m’arrête d’écouter dès que vous marquez une pause.`
-    : phase === 'thinking' ? 'Je prépare ma réponse…' : '')
-  const micDisabled = phase === 'starting' || phase === 'unavailable'
+    : phase === 'thinking' ? 'Je prépare ma réponse…'
+      : phase === 'speaking' ? 'Je vous réécoute juste après ma réponse.'
+        : phase === 'idle' ? 'Je vous réponds à voix haute, puis la conversation continue toute seule. Touchez « Annuler » pour l’arrêter.' : '')
+  const micDisabled = phase === 'starting' || phase === 'thinking' || phase === 'unavailable'
+  // « Annuler » n'a de sens que pendant un échange : écoute, attente ou réponse.
+  const busy = phase === 'listening' || phase === 'thinking' || phase === 'speaking'
+  const [micLabel, micHint] = micLabels[phase]
 
   return (
     <div className="voice-session" ref={rootRef}>
@@ -98,38 +85,31 @@ function VoiceSession({ lang, chat, onChangeLanguage, onClose }) {
         </div>
       </section>
 
-      <button type="button" className="voice-handsfree" aria-pressed={handsFree} onClick={toggleHandsFree}>
-        <span className="voice-switch" aria-hidden="true" />
-        Écoute continue
-      </button>
-
       <div className="voice-controls" role="group" aria-label="Commandes vocales">
-        <a className="voice-control glass-btn is-large" href={viewHref.chat} aria-label="Voir la conversation écrite" title="Voir la conversation écrite">
-          <MessageSquareText aria-hidden="true" />
+        <a className="voice-control voice-side" href={viewHref.chat} aria-label="Voir la conversation écrite" title="Voir la conversation écrite">
+          <span className="glass-btn is-large" aria-hidden="true"><MessageSquareText /></span>
+          <span className="voice-control-label" aria-hidden="true">Écrire</span>
         </a>
-        <button
-          type="button"
-          className={cn('voice-control voice-mic', `is-${phase}`)}
-          onClick={toggle}
-          disabled={micDisabled}
-          aria-label={micLabels[phase] ?? 'Micro indisponible'}
-          title={micLabels[phase]}
-        >
-          {phase === 'unavailable' ? <MicOff aria-hidden="true" />
-            : phase === 'thinking' ? <Loader2 className="spin" aria-hidden="true" />
-              : phase === 'speaking' || phase === 'listening' ? <Square className="icon-fill" aria-hidden="true" />
-                : <Mic aria-hidden="true" />}
+        <button type="button" className="voice-control voice-main" onClick={toggle} disabled={micDisabled} aria-label={micHint} title={micHint}>
+          <span className={cn('voice-mic', `is-${phase}`)} aria-hidden="true">
+            {phase === 'unavailable' ? <MicOff />
+              : phase === 'thinking' || phase === 'starting' ? <Loader2 className="spin" />
+                : phase === 'speaking' || phase === 'listening' ? <Square className="icon-fill" />
+                  : <Mic />}
+          </span>
+          <span className="voice-control-label" aria-hidden="true">{micLabel}</span>
         </button>
-        <button type="button" className="voice-control glass-btn is-large" onClick={onClose} aria-label="Quitter le mode vocal" title="Quitter">
-          <X aria-hidden="true" />
+        <button type="button" className="voice-control voice-side" onClick={cancel} disabled={!busy} aria-label="Annuler et rester sur le mode vocal" title="Annuler">
+          <span className="glass-btn is-large" aria-hidden="true"><X /></span>
+          <span className="voice-control-label" aria-hidden="true">Annuler</span>
         </button>
       </div>
     </div>
   )
 }
 
-// Mode vocal : choix de la langue, puis conversation vocale continue.
-function VoiceView({ chat, onMenu, onClose }) {
+// Mode vocal : choix de la langue, puis conversation vocale lancée par l'usager.
+function VoiceView({ chat, onMenu }) {
   const { voiceLang, setVoiceLang } = chat
   const language = voiceLang ? voiceLanguageByCode[voiceLang] : null
 
@@ -147,7 +127,7 @@ function VoiceView({ chat, onMenu, onClose }) {
         ) : null}
       />
       {language
-        ? <VoiceSession key={voiceLang} lang={voiceLang} chat={chat} onChangeLanguage={setVoiceLang} onClose={onClose} />
+        ? <VoiceSession key={voiceLang} lang={voiceLang} chat={chat} onChangeLanguage={setVoiceLang} />
         : <VoiceLanguagePicker onSelect={setVoiceLang} />}
     </div>
   )
