@@ -222,8 +222,8 @@
   /* Centre plus clair : le logo vert reste lisible sur fond sombre. */
   background:
     radial-gradient(circle at 50% 45%, rgb(230 255 240 / 0.22), transparent 45%),
-    radial-gradient(circle at 50% 40%, rgb(61 220 132 / 0.35), transparent 60%),
-    radial-gradient(circle, rgb(0 155 73 / 0.22), transparent 72%);
+    radial-gradient(circle at 50% 40%, rgb(31 191 104 / 0.16), transparent 60%),
+    radial-gradient(circle, rgb(42 125 143 / 0.14), transparent 72%);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--green-light) 30%, transparent);
 }
 

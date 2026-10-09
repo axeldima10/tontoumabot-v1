@@ -43,7 +43,7 @@ function VoiceSession({ lang, chat, onChangeLanguage, onClose }) {
   const rootRef = useRef(null)
   // Mains libres : après chaque réponse, l'écoute reprend seule. À couper dans un lieu bruyant.
   const [handsFree, setHandsFree] = useState(readHandsFree)
-  const { phase, heard, answer, notice, languageAlert, analyserRef, toggle } = useVoiceAssistant({ lang, chat, handsFree })
+  const { phase, heard, answer, audioFailed, notice, languageAlert, analyserRef, toggle } = useVoiceAssistant({ lang, chat, handsFree })
 
   function toggleHandsFree() {
     const next = !handsFree
@@ -71,7 +71,8 @@ function VoiceSession({ lang, chat, onChangeLanguage, onClose }) {
 
   // Le titre suit la phase ; en écoute, il confirme que la voix a bien été détectée.
   const title = phase === 'listening' && heard ? 'Je vous entends…' : titles[phase]
-  const showAnswer = Boolean(answer) && phase !== 'listening'
+  // Mode vocal = réponse entendue, pas lue : le texte n'apparaît qu'en secours, si l'audio n'a pas pu être joué.
+  const showAnswer = audioFailed && Boolean(answer) && phase !== 'listening'
   const caption = notice || (phase === 'listening'
     ? `Parlez naturellement en ${language.name.toLowerCase()}. Je m’arrête d’écouter dès que vous marquez une pause.`
     : phase === 'thinking' ? 'Je prépare ma réponse…' : '')
@@ -83,11 +84,8 @@ function VoiceSession({ lang, chat, onChangeLanguage, onClose }) {
         <h1 id="voice-title" className="voice-title" aria-live="polite">{title}</h1>
         <VoiceOrb analyserRef={analyserRef} mode={phase === 'unavailable' || phase === 'starting' ? 'idle' : phase} />
         <div className="voice-caption">
-          {showAnswer ? (
-            <p className="voice-answer" aria-live="polite" lang={lang}>{plainText(answer)}</p>
-          ) : (
-            <p className={cn('voice-hint', notice && 'is-notice')} aria-live="polite">{caption || ' '}</p>
-          )}
+          <p className={cn('voice-hint', notice && 'is-notice')} aria-live="polite">{caption || ' '}</p>
+          {showAnswer && <p className="voice-answer" lang={lang}>{plainText(answer)}</p>}
           {suggested && suggested.code !== lang && (
             <div className="voice-alert glass" role="status">
               <Flag code={suggested.flag} />

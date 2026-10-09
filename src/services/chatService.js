@@ -1,6 +1,8 @@
 import { kioskConfig } from '../lib/kiosk'
 
-const BACKEND_URL = import.meta.env.VITE_TEXT_SESSION_URL || ''
+// En développement, les appels restent sur l'adresse de l'application : le serveur Vite les relaie
+// vers VITE_TEXT_SESSION_URL (voir vite.config.mjs). En production, l'URL du backend est utilisée telle quelle.
+const BACKEND_URL = import.meta.env.DEV ? '' : import.meta.env.VITE_TEXT_SESSION_URL || ''
 const CONVERSATIONS_PATH = '/api/v1/public/conversations'
 // Une borne peut préciser son organisation et son identifiant dans son adresse (voir lib/kiosk.js).
 const ORGANISATION_ID = kioskConfig?.organizationId || import.meta.env.VITE_ORGANISATION_ID || ''

@@ -26,6 +26,8 @@ function useVoiceAssistant({ lang, chat, handsFree = true }) {
   const [answer, setAnswer] = useState('')
   const [notice, setNotice] = useState('')
   const [languageAlert, setLanguageAlert] = useState(null)
+  // Réponse vocale illisible (aucun audio reçu ou lecture impossible) : la vue affiche alors le texte en secours.
+  const [audioFailed, setAudioFailed] = useState(false)
   // Analyseur affiché par la sphère : micro pendant l'écoute, voix de Tontouma pendant la réponse.
   const analyserRef = useRef(null)
   // Une session par montage : protège des doubles montages de StrictMode et des callbacks tardifs.
@@ -40,6 +42,12 @@ function useVoiceAssistant({ lang, chat, handsFree = true }) {
 
   async function setup(s) {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext
+    // Hors HTTPS (ex. http://192.168.x.x), le navigateur masque le micro : on le dit clairement.
+    if (!window.isSecureContext) {
+      setPhase('unavailable')
+      setNotice('Le micro nécessite une connexion sécurisée (HTTPS). Ouvrez l’application en https:// pour parler, ou poursuivez par écrit.')
+      return false
+    }
     if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder || !AudioContextClass) {
       setPhase('unavailable')
       setNotice('La capture audio n’est pas disponible dans ce navigateur. Vous pouvez poursuivre par écrit.')
@@ -109,6 +117,7 @@ function useVoiceAssistant({ lang, chat, handsFree = true }) {
     setHeard(false)
     setNotice('')
     setLanguageAlert(null)
+    setAudioFailed(false)
     setPhase('listening')
 
     s.vad = createVoiceActivityDetector(s.micAnalyser, {
@@ -147,6 +156,7 @@ function useVoiceAssistant({ lang, chat, handsFree = true }) {
     s.turn = { userId, botId }
     s.queue = queue
     setAnswer('')
+    setAudioFailed(false)
     setPhase('thinking')
 
     s.cancelRequest = sendVoiceMessage({
@@ -191,7 +201,17 @@ function useVoiceAssistant({ lang, chat, handsFree = true }) {
   }
 
   function createQueue() {
-    return { items: new Map(), next: null, streamDone: false, playing: false, finished: false, abort: new AbortController() }
+    return {
+      items: new Map(),
+      next: null,
+      streamDone: false,
+      playing: false,
+      finished: false,
+      received: 0,
+      played: 0,
+      failed: false,
+      abort: new AbortController(),
+    }
   }
 
   // Les morceaux sont téléchargés dès leur annonce, puis joués dans l'ordre de leur index.
@@ -201,6 +221,7 @@ function useVoiceAssistant({ lang, chat, handsFree = true }) {
     if (s.queue !== queue || !url) return
     const position = Number.isInteger(index) ? index : (queue.next ?? 0) + queue.items.size
     if (queue.next === null) queue.next = position
+    queue.received += 1
     queue.items.set(position, fetch(url, { signal: queue.abort.signal }).then((response) => {
       if (!response.ok) throw new Error(`Audio ${response.status}`)
       return response.blob()
@@ -230,7 +251,14 @@ function useVoiceAssistant({ lang, chat, handsFree = true }) {
 
     item
       .then((blob) => playBlob(s, blob))
-      .catch(() => {})
+      .then((played) => {
+        if (played) queue.played += 1
+      })
+      .catch((error) => {
+        if (error?.name === 'AbortError') return
+        queue.failed = true
+        console.warn('[Tontouma] Morceau de réponse vocale illisible :', error)
+      })
       .finally(() => {
         queue.playing = false
         queue.next += 1
@@ -238,30 +266,69 @@ function useVoiceAssistant({ lang, chat, handsFree = true }) {
       })
   }
 
-  function playBlob(s, blob) {
+  /**
+   * Joue un morceau via le moteur audio de la page (déjà activé par l'appui sur le micro) :
+   * aucun bouton « lecture », et fiable sur iPhone. Résout à true une fois le morceau entièrement joué.
+   */
+  async function playBlob(s, blob) {
+    if (s.disposed) return false
+    if (s.ctx.state === 'suspended') await s.ctx.resume().catch(() => {})
+    if (s.ctx.state !== 'running') throw new Error('Moteur audio en pause : le navigateur attend un appui.')
+
+    let buffer
+    try {
+      buffer = await s.ctx.decodeAudioData(await blob.arrayBuffer())
+    } catch {
+      // Format que le moteur audio ne sait pas décoder : lecture classique en secours.
+      return playWithElement(s, blob)
+    }
+    if (s.disposed) return false
+
     return new Promise((resolve) => {
+      const source = s.ctx.createBufferSource()
+      source.buffer = buffer
+      source.connect(s.outAnalyser)
+      const finish = (played) => {
+        source.onended = null
+        source.disconnect()
+        if (s.audio?.source === source) s.audio = null
+        resolve(played)
+      }
+      source.onended = () => finish(true)
+      s.audio = {
+        source,
+        stop: () => {
+          source.onended = null
+          try { source.stop() } catch { /* déjà arrêté */ }
+          finish(false)
+        },
+      }
+      source.start()
+    })
+  }
+
+  function playWithElement(s, blob) {
+    return new Promise((resolve, reject) => {
       const url = URL.createObjectURL(blob)
       const audio = new Audio(url)
       let source = null
       try {
-        // Le son passe par l'analyseur pour animer la sphère au rythme de la voix.
         source = s.ctx.createMediaElementSource(audio)
         source.connect(s.outAnalyser)
       } catch {
         source = null
       }
-      const end = () => {
+      const cleanup = () => {
         audio.onended = null
         audio.onerror = null
         source?.disconnect()
         URL.revokeObjectURL(url)
-        if (s.audio?.element === audio) s.audio = null
-        resolve()
+        if (s.audio?.source === audio) s.audio = null
       }
-      s.audio = { element: audio, end }
-      audio.onended = end
-      audio.onerror = end
-      audio.play().catch(end)
+      audio.onended = () => { cleanup(); resolve(true) }
+      audio.onerror = () => { cleanup(); reject(new Error(`Format audio non pris en charge (${blob.type || 'inconnu'})`)) }
+      s.audio = { source: audio, stop: () => { audio.pause(); cleanup(); resolve(false) } }
+      audio.play().catch((error) => { cleanup(); reject(error) })
     })
   }
 
@@ -270,10 +337,8 @@ function useVoiceAssistant({ lang, chat, handsFree = true }) {
       s.queue.abort.abort()
       s.queue = null
     }
-    if (s.audio) {
-      s.audio.element.pause()
-      s.audio.end()
-    }
+    s.audio?.stop()
+    s.audio = null
   }
 
   function playbackFinished(s) {
@@ -282,6 +347,19 @@ function useVoiceAssistant({ lang, chat, handsFree = true }) {
     queue.finished = true
     analyserRef.current = null
     if (s.disposed) return
+
+    // Rien n'a pu être joué : le texte s'affiche en secours et l'écoute ne reprend pas toute seule.
+    if (!queue.played) {
+      console.warn(queue.received
+        ? '[Tontouma] Réponse vocale reçue mais illisible (voir les avertissements ci-dessus et l’onglet Réseau).'
+        : '[Tontouma] Le serveur n’a envoyé aucun audio (événement audio-chunk) pour cette réponse : synthèse vocale désactivée ou en échec côté backend.')
+      setAudioFailed(true)
+      setPhase('idle')
+      setNotice('La réponse vocale n’a pas pu être lue. Voici la réponse écrite.')
+      return
+    }
+    if (queue.failed) setNotice('Une partie de la réponse vocale n’a pas pu être lue.')
+
     // Mains libres : Tontouma se remet à écouter, comme un assistant vocal.
     // Sinon (lieu bruyant), il attend un appui pour la question suivante.
     if (handsFreeRef.current) startListening()
@@ -329,7 +407,7 @@ function useVoiceAssistant({ lang, chat, handsFree = true }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  return { phase, heard, answer, notice, languageAlert, analyserRef, toggle }
+  return { phase, heard, answer, audioFailed, notice, languageAlert, analyserRef, toggle }
 }
 
 export default useVoiceAssistant

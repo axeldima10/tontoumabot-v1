@@ -12,7 +12,7 @@ import '../../css/VoiceView.css'
 // Voix à la borne : pas d'écoute continue (lieu public, bruit ambiant), on touche le micro à chaque question.
 function KioskVoice({ lang, chat, copy, onBusyChange, onWrite, onChangeLanguage }) {
   const rootRef = useRef(null)
-  const { phase, heard, answer, notice, languageAlert, analyserRef, toggle } = useVoiceAssistant({ lang, chat, handsFree: false })
+  const { phase, heard, answer, audioFailed, notice, languageAlert, analyserRef, toggle } = useVoiceAssistant({ lang, chat, handsFree: false })
   const busy = phase === 'listening' || phase === 'thinking' || phase === 'speaking'
 
   useEffect(() => {
@@ -35,7 +35,8 @@ function KioskVoice({ lang, chat, copy, onBusyChange, onWrite, onChangeLanguage 
   const detected = languageAlert && kioskLanguageByCode[String(languageAlert.detectedLanguage).slice(0, 2).toLowerCase()]
   const suggested = detected?.voice && detected.code !== lang ? detected : null
   const title = phase === 'listening' && heard ? copy.phases.heard : copy.phases[phase]
-  const showAnswer = Boolean(answer) && phase !== 'listening'
+  // Mode vocal = réponse entendue, pas lue : le texte n'apparaît qu'en secours, si l'audio n'a pas pu être joué.
+  const showAnswer = audioFailed && Boolean(answer) && phase !== 'listening'
   const hint = notice || (phase === 'listening' ? copy.voiceHint : phase === 'thinking' ? copy.thinkingHint : '')
   const micLabel = phase === 'listening' ? copy.micStop
     : phase === 'thinking' ? copy.micCancel
@@ -48,9 +49,8 @@ function KioskVoice({ lang, chat, copy, onBusyChange, onWrite, onChangeLanguage 
       <VoiceOrb analyserRef={analyserRef} mode={phase === 'unavailable' || phase === 'starting' ? 'idle' : phase} />
 
       <div className="kvoice-caption">
-        {showAnswer
-          ? <p className="kvoice-answer" aria-live="polite">{plainText(answer)}</p>
-          : <p className={cn('kvoice-hint', notice && 'is-notice')} aria-live="polite">{hint || ' '}</p>}
+        <p className={cn('kvoice-hint', notice && 'is-notice')} aria-live="polite">{hint || ' '}</p>
+        {showAnswer && <p className="kvoice-answer">{plainText(answer)}</p>}
         {suggested && (
           <div className="kvoice-alert glass" role="status">
             <Flag code={suggested.flag} />

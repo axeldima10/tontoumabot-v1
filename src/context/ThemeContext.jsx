@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 
 const ThemeContext = createContext(null)
-const PREFS_KEY = 'tontuma_prefs_v1'
+// v2 : le thème clair devient le défaut ; l'ancienne clé mémorisait « sombre » sans choix de l'utilisateur.
+const PREFS_KEY = 'tontuma_prefs_v2'
 
 // Les préférences d'affichage sont un simple confort : leur lecture ne doit jamais bloquer l'application.
 function readPrefs() {
@@ -14,13 +15,13 @@ function readPrefs() {
 
 // Le contexte rend l'état du thème disponible à tous les composants sans prop drilling.
 export function ThemeProvider({ children }) {
-  const [dark, setDark] = useState(() => readPrefs().dark ?? true)
+  const [dark, setDark] = useState(() => readPrefs().dark ?? false)
 
   useEffect(() => {
     // Le document entier suit le thème : barres de défilement, fond de rebond et barre du navigateur.
     const root = document.documentElement
     root.dataset.theme = dark ? 'dark' : 'light'
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#050d09' : '#eef5f1')
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0b171a' : '#eef5f1')
     try {
       localStorage.setItem(PREFS_KEY, JSON.stringify({ dark }))
     } catch {
