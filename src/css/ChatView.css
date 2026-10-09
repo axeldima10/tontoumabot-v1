@@ -71,7 +71,8 @@
   position: relative;
   display: grid;
   place-items: center;
-  width: clamp(180px, 52vw, 260px);
+  /* Taille liée à la hauteur de l'écran : la mascotte ne pousse jamais les suggestions hors de vue. */
+  width: clamp(96px, min(52vw, 20dvh), 260px);
   aspect-ratio: 1;
   margin-bottom: 6px;
 }
@@ -140,7 +141,7 @@
 
 .intro-copy h1 {
   margin: 0;
-  font-size: clamp(1.875rem, 7.5vw, 3rem);
+  font-size: clamp(1.5rem, min(7.5vw, 5.4dvh), 3rem);
   font-weight: 500;
   line-height: 1.1;
   letter-spacing: -0.025em;
@@ -194,6 +195,17 @@
     translate: 0 -2px;
     border-color: color-mix(in srgb, var(--green) 45%, var(--glass-border));
     background: var(--glass-bg-hover);
+  }
+}
+
+/* Écran peu haut : la phrase d'aide s'efface pour que les suggestions restent visibles sans défiler. */
+@media (max-height: 820px) {
+  .intro-sub {
+    display: none;
+  }
+
+  .intro-chips {
+    margin-top: 12px;
   }
 }
 
@@ -627,6 +639,6 @@
   }
 
   .intro-stage {
-    width: clamp(220px, 26vh, 300px);
+    width: clamp(110px, 22dvh, 300px);
   }
 }

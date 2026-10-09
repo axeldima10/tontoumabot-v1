@@ -2,18 +2,16 @@ import { useCallback, useSyncExternalStore } from 'react'
 
 // Chaque vue possède sa propre URL : l'utilisateur peut partager, recharger ou revenir en arrière.
 export const viewHref = {
-  home: '#accueil',
   chat: '#discussion',
   voice: '#vocal',
 }
 
 const viewByHash = {
-  '#accueil': 'home',
   '#discussion': 'chat',
   '#vocal': 'voice',
 }
 
-// Sans ancre, l'application s'ouvre sur le mode vocal : c'est l'usage principal.
+// Sans ancre (ou avec une ancienne adresse comme #accueil), l'application s'ouvre sur le mode vocal : c'est l'usage principal.
 const DEFAULT_VIEW = 'voice'
 
 function readView() {

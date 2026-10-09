@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { AudioLines, ChevronRight, House, MessageCircle, MessageSquareText, Power, SquarePen, UserRound, X } from 'lucide-react'
+import { AudioLines, ChevronRight, MessageCircle, MessageSquareText, Power, SquarePen, UserRound, X } from 'lucide-react'
 import botImage from '../../assets/images/tontuma-bot.png'
 import { viewHref } from '../../hooks/useHashView'
 import { cn } from '../../lib/cn'
@@ -7,7 +7,6 @@ import { ThemeToggle } from './ThemeControls'
 import '../../css/Sidebar.css'
 
 const navigation = [
-  { view: 'home', label: 'Accueil', icon: House },
   { view: 'chat', label: 'Discussion', icon: MessageSquareText },
   { view: 'voice', label: 'Mode vocal', icon: AudioLines },
 ]

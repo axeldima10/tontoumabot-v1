@@ -1,6 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
 import ChatView from '../components/chat/ChatView'
-import HomeView from '../components/home/HomeView'
 import AccountSheet from '../components/layout/AccountSheet'
 import AppBackground from '../components/layout/AppBackground'
 import InstallPrompt from '../components/layout/InstallPrompt'
@@ -45,12 +44,6 @@ function DashboardPage() {
     setAccountOpen(true)
   }
 
-  function startWith(text) {
-    // Si une réponse est encore en cours, la suggestion attend dans le champ de saisie.
-    if (!chat.sendMessage(text)) chat.setDraft(text)
-    navigate('chat')
-  }
-
   function newChat() {
     chat.resetConversation()
     closeMenu()
@@ -60,7 +53,7 @@ function DashboardPage() {
   function endSession() {
     chat.resetConversation()
     closeMenu()
-    navigate('home')
+    navigate('voice')
   }
 
   function finishOnboarding() {
@@ -120,10 +113,8 @@ function DashboardPage() {
       <main className="app-main" ref={mainRef} tabIndex={-1} inert={!isDesktop && menuOpen}>
         {view === 'chat' ? (
           <ChatView chat={chat} firstName={firstName} isGuest={!user} onMenu={openMenu} onNewChat={newChat} onOpenAccount={openAccount} />
-        ) : view === 'voice' ? (
-          <VoiceView chat={chat} onMenu={openMenu} />
         ) : (
-          <HomeView user={user} recents={recents} onMenu={openMenu} onSuggestion={startWith} onOpenRecent={openRecent} onOpenAccount={openAccount} />
+          <VoiceView chat={chat} onMenu={openMenu} />
         )}
       </main>
       {hasAnswer && <InstallPrompt />}

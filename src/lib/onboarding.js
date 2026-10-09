@@ -2,7 +2,7 @@
 const ONBOARDING_KEY = 'tontuma_onboarding_v1'
 
 /**
- * Visible au tout premier passage, à l'ouverture de l'application (sans ancre) ou sur l'accueil.
+ * Visible au tout premier passage, à l'ouverture de l'application (sans ancre, ou ancienne adresse #accueil).
  * Un lien direct vers la discussion ou le mode vocal mène directement au service :
  * on ne bloque pas une intention déjà exprimée.
  */
